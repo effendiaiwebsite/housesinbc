@@ -18,7 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   sendOTP: (phoneNumber: string) => Promise<void>;
-  verifyOTP: (phoneNumber: string, code: string) => Promise<void>;
+  verifyOTP: (phoneNumber: string, code: string, loginType?: 'admin' | 'client') => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -57,11 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyOTP = async (phoneNumber: string, code: string) => {
+  const verifyOTP = async (phoneNumber: string, code: string, loginType: 'admin' | 'client' = 'client') => {
     try {
-      const response = await authAPI.verifyOTP(phoneNumber, code);
+      console.log('🔑 useAuth.verifyOTP called:');
+      console.log('  phoneNumber:', phoneNumber);
+      console.log('  loginType:', loginType);
+      const response = await authAPI.verifyOTP(phoneNumber, code, loginType);
+      console.log('  API response:', response);
       setUser(response.user);
+      console.log('  User state updated to:', response.user);
     } catch (error) {
+      console.error('  ❌ verifyOTP error:', error);
       throw error;
     }
   };

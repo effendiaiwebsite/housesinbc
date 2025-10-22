@@ -31,19 +31,103 @@ const updateAppointmentSchema = z.object({
 
 /**
  * POST /api/appointments
- * Create a new appointment (client or admin)
+ * Create a new appointment - Auto-registers user if not authenticated
+ * Public endpoint that handles both authenticated and unauthenticated users
  */
-router.post('/', requireAuth, validateBody(appointmentSchema), async (req, res) => {
+router.post('/', validateBody(appointmentSchema), async (req, res) => {
   try {
     const { propertyAddress, preferredDate, preferredTime, notes, clientPhone, clientName } = req.body;
-    const userId = req.session.userId;
-    const isAdmin = req.session.role === 'admin';
+    const isAuthenticated = req.session?.isAuthenticated;
+    const isAdmin = req.session?.role === 'admin';
 
-    // If admin is creating for a client, use provided info; otherwise use session user
+    let finalUserId: string;
+    let finalClientName: string;
+    let finalClientPhone: string;
+
+    // Case 1: Authenticated admin creating for a client
+    if (isAuthenticated && isAdmin && clientPhone && clientName) {
+      finalClientPhone = clientPhone;
+      finalClientName = clientName;
+
+      // Find or create user for the client
+      const userSnapshot = await collections.users
+        .where('phoneNumber', '==', clientPhone)
+        .limit(1)
+        .get();
+
+      if (userSnapshot.empty) {
+        // Auto-register the client
+        const newUserRef = await collections.users.add({
+          phoneNumber: clientPhone,
+          name: clientName,
+          role: 'client',
+          verified: false, // Not verified via OTP yet
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        finalUserId = newUserRef.id;
+      } else {
+        finalUserId = userSnapshot.docs[0].id;
+        // Update name if provided
+        await userSnapshot.docs[0].ref.update({
+          name: clientName,
+          updatedAt: new Date(),
+        });
+      }
+    }
+    // Case 2: Authenticated client booking for themselves
+    else if (isAuthenticated && !isAdmin) {
+      finalUserId = req.session.userId!;
+      finalClientName = req.session.userName || clientName || 'Unknown';
+      finalClientPhone = req.session.phoneNumber!;
+    }
+    // Case 3: Unauthenticated user booking (public appointment)
+    else if (clientPhone && clientName) {
+      finalClientPhone = clientPhone;
+      finalClientName = clientName;
+
+      // Find or create user - AUTO-REGISTRATION
+      const userSnapshot = await collections.users
+        .where('phoneNumber', '==', clientPhone)
+        .limit(1)
+        .get();
+
+      if (userSnapshot.empty) {
+        // Auto-register new user
+        const newUserRef = await collections.users.add({
+          phoneNumber: clientPhone,
+          name: clientName,
+          role: 'client',
+          verified: false, // They can verify later via OTP login
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        finalUserId = newUserRef.id;
+
+        console.log(`✅ Auto-registered new user: ${clientName} (${clientPhone})`);
+      } else {
+        finalUserId = userSnapshot.docs[0].id;
+        // Update name if provided
+        await userSnapshot.docs[0].ref.update({
+          name: clientName,
+          updatedAt: new Date(),
+        });
+
+        console.log(`✅ Found existing user: ${clientName} (${clientPhone})`);
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'Either authenticate or provide clientPhone and clientName',
+      });
+    }
+
+    // Create the appointment
     const appointmentData = {
-      userId: isAdmin && clientPhone ? clientPhone : userId,
-      clientName: isAdmin && clientName ? clientName : req.session.userName || 'Unknown',
-      clientPhone: isAdmin && clientPhone ? clientPhone : req.session.phoneNumber,
+      userId: finalUserId,
+      clientName: finalClientName,
+      clientPhone: finalClientPhone,
       propertyAddress,
       preferredDate: new Date(preferredDate),
       preferredTime,
@@ -57,7 +141,7 @@ router.post('/', requireAuth, validateBody(appointmentSchema), async (req, res) 
 
     res.status(201).json({
       success: true,
-      message: 'Appointment created successfully',
+      message: 'Appointment created successfully. You can now log in with your phone number to view your appointments.',
       id: docRef.id,
     });
   } catch (error: any) {

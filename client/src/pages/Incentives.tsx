@@ -4,18 +4,20 @@
  * Government programs and incentives for first-time buyers with lead capture.
  */
 
+import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import LeadCaptureModal from '@/components/LeadCaptureModal';
-import { useLeadCapture } from '@/hooks/useLeadCapture';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Incentives() {
-  const { isModalOpen, source, metadata, trigger, close, onSuccess } = useLeadCapture();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentProgram, setCurrentProgram] = useState('');
 
   const handleLearnMore = (program: string) => {
-    trigger('incentives', { program });
+    setCurrentProgram(program);
+    setIsModalOpen(true);
   };
 
   const programs = [
@@ -202,10 +204,10 @@ export default function Incentives() {
 
       <LeadCaptureModal
         isOpen={isModalOpen}
-        onClose={close}
-        source={source}
-        metadata={metadata}
-        onSuccess={onSuccess}
+        onClose={() => setIsModalOpen(false)}
+        source="incentives"
+        metadata={{ program: currentProgram }}
+        onSuccess={() => setIsModalOpen(false)}
       />
     </div>
   );

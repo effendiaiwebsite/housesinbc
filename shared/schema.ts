@@ -23,7 +23,7 @@ export const verifyOTPSchema = z.object({
 export const leadSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phoneNumber: z.string().min(10, 'Please enter a valid phone number'),
-  source: z.enum(['landing', 'mortgage', 'incentives', 'pricing', 'blog', 'properties', 'calculator']),
+  source: z.enum(['landing', 'mortgage', 'incentives', 'pricing', 'blog', 'properties', 'calculator', 'guide']),
   email: z.string().email('Invalid email address').optional(),
   metadata: z.record(z.any()).optional(), // Additional data like calculator values, viewed property, etc.
 });

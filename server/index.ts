@@ -9,6 +9,7 @@ import 'dotenv/config';
 
 import express, { Express } from 'express';
 import session from 'express-session';
+import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { requestLogger, errorHandler } from './middleware';
@@ -18,6 +19,9 @@ import authRoutes from './routes/auth';
 import leadsRoutes from './routes/leads';
 import analyticsRoutes from './routes/analytics';
 import appointmentsRoutes from './routes/appointments';
+import propertiesRoutes from './routes/properties';
+import neighborhoodsRoutes from './routes/neighborhoods';
+import savedPropertiesRoutes from './routes/savedProperties';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +31,14 @@ const PORT = process.env.PORT || 3000;
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // ===== Middleware Setup =====
+
+// CORS configuration for Flutter web app
+app.use(cors({
+  origin: true, // Allow all origins in development
+  credentials: true, // Allow cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+}));
 
 // Body parsing
 app.use(express.json());
@@ -58,6 +70,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/appointments', appointmentsRoutes);
+app.use('/api/properties', propertiesRoutes);
+app.use('/api/neighborhoods', neighborhoodsRoutes);
+app.use('/api/saved-properties', savedPropertiesRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -34,7 +34,7 @@ type LeadFormData = z.infer<typeof leadFormSchema>;
 interface LeadCaptureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  source: 'landing' | 'mortgage' | 'incentives' | 'pricing' | 'blog' | 'properties' | 'calculator';
+  source: 'landing' | 'mortgage' | 'incentives' | 'pricing' | 'blog' | 'properties' | 'calculator' | 'guide';
   metadata?: Record<string, any>;
   onSuccess?: () => void;
 }

@@ -9,25 +9,31 @@ import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import LeadCaptureModal from '@/components/LeadCaptureModal';
-import { useLeadCapture } from '@/hooks/useLeadCapture';
 
 export default function Landing() {
-  const { isModalOpen, source, metadata, trigger, close, onSuccess } = useLeadCapture();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handleGetGuide = () => {
-    trigger('landing', { guide: 'BC-First-Time-Home-Buyers-Guide-2025' });
+    // Always show modal for guide download - don't check hasCapture
+    setIsModalOpen(true);
   };
 
   const handleLeadSuccess = () => {
-    onSuccess();
     setShowSuccessMessage(true);
+    setIsModalOpen(false);
 
     // Trigger PDF download
     setTimeout(() => {
-      // In production, this would download the actual PDF
+      // Download the actual PDF
+      const link = document.createElement('a');
+      link.href = '/src/assets/HomeBuyingGuide.pdf';
+      link.download = 'BC-First-Time-Home-Buyers-Guide-2025.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       console.log('📄 PDF Download triggered: BC First-Time Home Buyers Guide 2025');
-      alert('Your guide is being downloaded! Check your downloads folder.');
     }, 500);
   };
 
@@ -215,9 +221,9 @@ export default function Landing() {
       {/* Lead Capture Modal */}
       <LeadCaptureModal
         isOpen={isModalOpen}
-        onClose={close}
-        source={source}
-        metadata={metadata}
+        onClose={() => setIsModalOpen(false)}
+        source="guide"
+        metadata={{ guide: 'BC-First-Time-Home-Buyers-Guide-2025' }}
         onSuccess={handleLeadSuccess}
       />
     </div>

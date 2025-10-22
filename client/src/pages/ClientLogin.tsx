@@ -4,7 +4,7 @@
  * OTP-based authentication for client portal access.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
@@ -24,9 +24,17 @@ export default function ClientLogin() {
   const [loading, setLoading] = useState(false);
 
   // Redirect if already authenticated as client
-  if (isAuthenticated && user?.role === 'client') {
-    setLocation('/client/dashboard');
-  }
+  useEffect(() => {
+    console.log('🔄 CLIENT LOGIN - useEffect redirect check:');
+    console.log('  isAuthenticated:', isAuthenticated);
+    console.log('  user:', user);
+    if (isAuthenticated && user?.role === 'client') {
+      console.log('✅ CLIENT LOGIN - Already authenticated as client, redirecting to /client/dashboard');
+      setLocation('/client/dashboard');
+    } else if (isAuthenticated && user?.role !== 'client') {
+      console.log('⚠️  CLIENT LOGIN - Authenticated but role is:', user?.role);
+    }
+  }, [isAuthenticated, user, setLocation]);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,13 +63,18 @@ export default function ClientLogin() {
     setLoading(true);
 
     try {
-      await verifyOTP(phoneNumber, code);
+      console.log('📱 CLIENT LOGIN - Calling verifyOTP with loginType="client"');
+      console.log('  Phone:', phoneNumber);
+      await verifyOTP(phoneNumber, code, 'client');
+      console.log('✅ CLIENT LOGIN - OTP verified successfully');
+      console.log('  Redirecting to /client/dashboard');
       toast({
         title: 'Welcome!',
         description: 'You are now logged in',
       });
       setLocation('/client/dashboard');
     } catch (error: any) {
+      console.error('❌ CLIENT LOGIN - Error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Invalid verification code',

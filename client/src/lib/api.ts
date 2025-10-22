@@ -45,15 +45,20 @@ export const authAPI = {
     );
   },
 
-  verifyOTP: async (phoneNumber: string, code: string) => {
-    return apiRequest<{
+  verifyOTP: async (phoneNumber: string, code: string, loginType: 'admin' | 'client' = 'client') => {
+    console.log('🌐 API - verifyOTP request:');
+    console.log('  URL: /auth/verify-otp');
+    console.log('  Body:', { phoneNumber, code, loginType });
+    const response = await apiRequest<{
       success: boolean;
       message: string;
       user: { id: string; phoneNumber: string; role: 'admin' | 'client' };
     }>('/auth/verify-otp', {
       method: 'POST',
-      body: JSON.stringify({ phoneNumber, code }),
+      body: JSON.stringify({ phoneNumber, code, loginType }),
     });
+    console.log('  Response:', response);
+    return response;
   },
 
   checkStatus: async () => {
@@ -243,6 +248,95 @@ export const analyticsAPI = {
   },
 };
 
+// ===== Properties API =====
+
+export const propertiesAPI = {
+  search: async (params: {
+    location?: string;
+    status_type?: 'ForSale' | 'ForRent' | 'RecentlySold';
+    home_type?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    beds?: number;
+    baths?: number;
+    page?: number;
+  }) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    return apiRequest<{
+      success: boolean;
+      data: any;
+    }>(`/properties/search?${queryParams.toString()}`);
+  },
+
+  getDetails: async (zpid: string) => {
+    return apiRequest<{
+      success: boolean;
+      data: any;
+    }>(`/properties/${zpid}`);
+  },
+};
+
+// ===== Neighborhoods API =====
+
+export const neighborhoodsAPI = {
+  getAll: async () => {
+    return apiRequest<{
+      success: boolean;
+      data: any[];
+    }>('/neighborhoods');
+  },
+
+  getByLocation: async (location: string) => {
+    return apiRequest<{
+      success: boolean;
+      data: any;
+    }>(`/neighborhoods/${encodeURIComponent(location)}`);
+  },
+};
+
+// ===== Saved Properties API =====
+
+export const savedPropertiesAPI = {
+  save: async (data: {
+    phoneNumber: string;
+    clientName: string;
+    zpid: string;
+    propertyData: {
+      streetAddress: string;
+      city?: string;
+      state?: string;
+      zipcode?: string;
+      price?: number;
+      bedrooms?: number;
+      bathrooms?: number;
+      livingArea?: number;
+      imgSrc?: string;
+    };
+  }) => {
+    return apiRequest<{ success: boolean; id: string; message: string }>('/saved-properties', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getAll: async (phoneNumber?: string) => {
+    const queryParams = phoneNumber ? `?phoneNumber=${encodeURIComponent(phoneNumber)}` : '';
+    return apiRequest<{ success: boolean; data: any[] }>(`/saved-properties${queryParams}`);
+  },
+
+  delete: async (id: string) => {
+    return apiRequest<{ success: boolean; message: string }>(`/saved-properties/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default {
   auth: authAPI,
   leads: leadsAPI,
@@ -251,4 +345,7 @@ export default {
   newsletter: newsletterAPI,
   blog: blogAPI,
   analytics: analyticsAPI,
+  properties: propertiesAPI,
+  neighborhoods: neighborhoodsAPI,
+  savedProperties: savedPropertiesAPI,
 };

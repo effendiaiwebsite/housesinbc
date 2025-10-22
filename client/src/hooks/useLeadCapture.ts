@@ -47,7 +47,7 @@ export function useLeadCapture() {
 
   // Trigger the lead capture modal
   const trigger = useCallback((
-    source: 'landing' | 'mortgage' | 'incentives' | 'pricing' | 'blog' | 'properties' | 'calculator',
+    source: 'landing' | 'mortgage' | 'incentives' | 'pricing' | 'blog' | 'properties' | 'calculator' | 'guide',
     metadata?: Record<string, any>
   ) => {
     // Don't show if already captured in this session

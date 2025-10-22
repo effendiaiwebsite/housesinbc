@@ -20,9 +20,13 @@ import Mortgage from '@/pages/Mortgage';
 import Incentives from '@/pages/Incentives';
 import Blog from '@/pages/Blog';
 import Properties from '@/pages/Properties';
+import Neighborhoods from '@/pages/Neighborhoods';
 
 // Admin pages
 import Dashboard from '@/pages/Dashboard';
+import AdminLeads from '@/pages/AdminLeads';
+import AdminAppointments from '@/pages/AdminAppointments';
+import AdminAnalytics from '@/pages/AdminAnalytics';
 
 // Client pages
 import ClientDashboard from '@/pages/ClientDashboard';
@@ -39,6 +43,7 @@ function App() {
         <Route path="/incentives" component={Incentives} />
         <Route path="/blog" component={Blog} />
         <Route path="/properties" component={Properties} />
+        <Route path="/neighborhoods" component={Neighborhoods} />
 
         {/* Auth Routes */}
         <Route path="/admin/login" component={AdminLogin} />
@@ -48,6 +53,24 @@ function App() {
         <Route path="/admin/dashboard">
           <ProtectedRoute requireRole="admin">
             <Dashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/leads">
+          <ProtectedRoute requireRole="admin">
+            <AdminLeads />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/appointments">
+          <ProtectedRoute requireRole="admin">
+            <AdminAppointments />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/analytics">
+          <ProtectedRoute requireRole="admin">
+            <AdminAnalytics />
           </ProtectedRoute>
         </Route>
 

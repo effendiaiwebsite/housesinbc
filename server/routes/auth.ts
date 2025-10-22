@@ -125,20 +125,42 @@ router.post('/verify-otp', validateBody(verifyOTPSchema), async (req: Request, r
     // Mark OTP as used
     await validOtp.ref.update({ used: true });
 
-    // Determine if user is admin
-    const isAdmin = phoneNumber === ADMIN_PHONE_NUMBER;
-    const role = isAdmin ? 'admin' : 'client';
+    // Get login type from request (admin or client)
+    const loginType = req.body.loginType || 'client'; // Default to client
 
-    // Find or create user
+    console.log('🔐 AUTH FLOW - verifyOTP:');
+    console.log('  - Phone:', phoneNumber);
+    console.log('  - loginType from request:', req.body.loginType);
+    console.log('  - loginType used:', loginType);
+
+    // For admin login, verify it's the admin phone number
+    if (loginType === 'admin' && phoneNumber !== ADMIN_PHONE_NUMBER) {
+      console.log('  ❌ Access denied - not admin phone number');
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'This phone number is not authorized for admin access',
+      });
+    }
+
+    // For admin login, role is always admin
+    // For client login, role is always client (even if it's the admin's phone number)
+    const role = loginType === 'admin' ? 'admin' : 'client';
+    console.log('  - Role assigned:', role);
+
+    // Find or create user with the specified role
+    // For client portal, we want a separate user document even for admin's phone number
     const userSnapshot = await collections.users
       .where('phoneNumber', '==', phoneNumber)
+      .where('role', '==', role)
       .limit(1)
       .get();
 
     let userId: string;
+    let userName: string | undefined;
 
     if (userSnapshot.empty) {
-      // Create new user
+      // Create new user with the specified role
+      console.log('  - Creating NEW user with role:', role);
       const newUserRef = await collections.users.add({
         phoneNumber,
         role,
@@ -148,10 +170,14 @@ router.post('/verify-otp', validateBody(verifyOTPSchema), async (req: Request, r
         updatedAt: new Date(),
       });
       userId = newUserRef.id;
+      console.log('  - New user created, ID:', userId);
     } else {
       // Update existing user
+      console.log('  - Found EXISTING user with role:', role);
       const userDoc = userSnapshot.docs[0];
       userId = userDoc.id;
+      userName = userDoc.data().name;
+      console.log('  - Existing user ID:', userId);
       await userDoc.ref.update({
         verified: true,
         lastLogin: new Date(),
@@ -163,7 +189,13 @@ router.post('/verify-otp', validateBody(verifyOTPSchema), async (req: Request, r
     req.session.userId = userId;
     req.session.phoneNumber = phoneNumber;
     req.session.role = role;
+    req.session.userName = userName;
     req.session.isAuthenticated = true;
+
+    console.log('  ✅ Session created:');
+    console.log('     - userId:', userId);
+    console.log('     - role:', role);
+    console.log('     - phoneNumber:', phoneNumber);
 
     return res.json({
       success: true,

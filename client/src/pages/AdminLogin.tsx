@@ -5,7 +5,7 @@
  * Admin phone number: +14034783995
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
@@ -14,20 +14,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+const ADMIN_PHONE = '+14034783995';
+
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
   const { sendOTP, verifyOTP, isAuthenticated, user } = useAuth();
   const { toast } = useToast();
 
   const [step, setStep] = useState<'phone' | 'verify'>('phone');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(ADMIN_PHONE);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Redirect if already authenticated as admin
-  if (isAuthenticated && user?.role === 'admin') {
-    setLocation('/admin/dashboard');
-  }
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'admin') {
+      setLocation('/admin/dashboard');
+    }
+  }, [isAuthenticated, user, setLocation]);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +60,7 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      await verifyOTP(phoneNumber, code);
+      await verifyOTP(phoneNumber, code, 'admin');
       toast({
         title: 'Success',
         description: 'Logged in successfully',
@@ -80,7 +84,7 @@ export default function AdminLogin() {
           <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>
           <CardDescription className="text-center">
             {step === 'phone'
-              ? 'Enter your phone number to receive a verification code'
+              ? 'Click the button below to receive a verification code'
               : 'Enter the 6-digit code sent to your phone'}
           </CardDescription>
         </CardHeader>
@@ -88,22 +92,21 @@ export default function AdminLogin() {
           {step === 'phone' ? (
             <form onSubmit={handleSendOTP} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Admin Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+1 (234) 567-8900"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                  disabled={loading}
+                  readOnly
+                  disabled
+                  className="bg-gray-50 text-center font-mono"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Use E.164 format (e.g., +12345678900)
+                <p className="text-xs text-muted-foreground text-center">
+                  Admin access only - phone number is pre-configured
                 </p>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Sending...' : 'Send Code'}
+                {loading ? 'Sending OTP...' : 'Send OTP to My Phone'}
               </Button>
             </form>
           ) : (
@@ -139,15 +142,15 @@ export default function AdminLogin() {
                   }}
                   disabled={loading}
                 >
-                  Use Different Number
+                  Resend Code
                 </Button>
               </div>
             </form>
           )}
 
           <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
-            <p>Admin access only</p>
-            <p className="mt-2">Phone: +14034783995</p>
+            <p>🔒 Admin Access Only</p>
+            <p className="mt-1 text-xs">Authorized personnel only</p>
           </div>
         </CardContent>
       </Card>

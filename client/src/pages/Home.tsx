@@ -58,7 +58,7 @@ export default function Home() {
                 <div className="text-center">
                   <div className="relative inline-block mb-6">
                     <img
-                      src="https://scontent.fyvr1-1.fna.fbcdn.net/v/t1.6435-9/107241492_3068456603270586_1976878397009641946_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=C_9yhzpCzFAQ7kNvwHYuiip&_nc_oc=AdmnWaKJj-eDERO8SZN4CndNsDPrjWfzb0Nw7Dhy5PxXfjRC5O22daADPBq5pAnrmaceEnD1uu5x0rt2Zdi9L2EY&_nc_zt=23&_nc_ht=scontent.fyvr1-1.fna&_nc_gid=HKBrnxGR8X8uGH1boxLSKA&oh=00_AfT1B8NCtPmc7dKB2uNwI7sTVG2wrZGW7mMNmSbbp2hVVA&oe=68B24BBA"
+                      src="/src/assets/rida.png"
                       alt="Rida Kazmi - BC Home Buying Expert"
                       className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg"
                     />

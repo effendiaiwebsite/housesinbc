@@ -78,7 +78,8 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
       : await collections.leads.count().get();
 
     return res.json({
-      leads,
+      success: true,
+      data: leads,
       total: totalSnapshot.data().count,
       limit: limitNum,
       offset: offsetNum,
