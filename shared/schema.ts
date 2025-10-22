@@ -16,6 +16,7 @@ export const sendOTPSchema = z.object({
 export const verifyOTPSchema = z.object({
   phoneNumber: z.string(),
   code: z.string().length(6, 'Code must be 6 digits'),
+  loginType: z.enum(['admin', 'client']).optional().default('client'),
 });
 
 // ===== Lead Capture Schemas =====
