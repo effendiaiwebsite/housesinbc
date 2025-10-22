@@ -58,7 +58,7 @@ export default function Home() {
                 <div className="text-center">
                   <div className="relative inline-block mb-6">
                     <img
-                      src="/src/assets/rida.png"
+                      src={new URL('../assets/rida.png', import.meta.url).href}
                       alt="Rida Kazmi - BC Home Buying Expert"
                       className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg"
                     />
