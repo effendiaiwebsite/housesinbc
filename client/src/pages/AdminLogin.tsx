@@ -28,7 +28,11 @@ export default function AdminLogin() {
 
   // Redirect if already authenticated as admin
   useEffect(() => {
+    console.log('🔄 ADMIN LOGIN - useEffect redirect check:');
+    console.log('  isAuthenticated:', isAuthenticated);
+    console.log('  user:', user);
     if (isAuthenticated && user?.role === 'admin') {
+      console.log('✅ ADMIN LOGIN - Already authenticated as admin, redirecting to /admin/dashboard');
       setLocation('/admin/dashboard');
     }
   }, [isAuthenticated, user, setLocation]);
@@ -60,19 +64,24 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
+      console.log('🔐 ADMIN LOGIN - Verifying OTP with loginType="admin"');
       await verifyOTP(phoneNumber, code, 'admin');
+      console.log('✅ ADMIN LOGIN - OTP verified, redirecting to /admin/dashboard');
       toast({
         title: 'Success',
         description: 'Logged in successfully',
       });
-      setLocation('/admin/dashboard');
+      // Force redirect after small delay to ensure state updates
+      setTimeout(() => {
+        setLocation('/admin/dashboard');
+      }, 100);
     } catch (error: any) {
+      console.error('❌ ADMIN LOGIN - Error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Invalid OTP code',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };
