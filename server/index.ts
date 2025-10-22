@@ -49,6 +49,21 @@ if (isDevelopment) {
   app.use(requestLogger);
 }
 
+// Session debugging middleware (production only - to diagnose issues)
+if (!isDevelopment) {
+  app.use((req, res, next) => {
+    console.log('📋 Request Debug:', {
+      method: req.method,
+      path: req.path,
+      sessionID: req.sessionID,
+      session: req.session,
+      cookies: req.headers.cookie,
+      isAuthenticated: req.session?.isAuthenticated,
+    });
+    next();
+  });
+}
+
 // Session configuration
 app.use(
   session({
@@ -59,8 +74,9 @@ app.use(
       secure: !isDevelopment, // HTTPS only in production
       httpOnly: true, // Prevent JS access
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax',
+      sameSite: isDevelopment ? 'lax' : 'none', // 'none' required for cross-site cookies in production
     },
+    proxy: true, // Trust proxy (required for Render.com)
   })
 );
 
