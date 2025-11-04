@@ -1,11 +1,11 @@
 /**
- * Pricing/Neighborhoods Page
+ * Pricing/Neighborhoods Page - Premium Design
  *
  * BC neighborhood explorer with pricing data and lead capture.
- * Full map integration can be added in enhancement phase.
  */
 
 import { useState } from 'react';
+import { MapPin, TrendingUp, Shield, GraduationCap, Bus, Trees, DollarSign, ArrowUpDown } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import LeadCaptureModal from '@/components/LeadCaptureModal';
@@ -111,50 +111,70 @@ export default function Pricing() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-white to-background">
       <Navigation />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+      {/* Hero - Premium Design */}
+      <section className="relative py-24 overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 gradient-info"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <div className="inline-flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-sm font-semibold text-info mb-4 animate-fade-in-down">
+            <MapPin className="w-4 h-4 mr-2" />
+            {neighborhoods.length} Neighborhoods Available
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold text-white leading-tight animate-fade-in-up">
             BC Neighborhood Explorer
           </h1>
-          <p className="text-xl opacity-90 max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-100">
             Explore pricing, amenities, and lifestyle data for BC's most popular neighborhoods
           </p>
         </div>
       </section>
 
-      {/* Sort Controls */}
-      <section className="bg-white border-b sticky top-16 z-30 py-4">
+      {/* Sort Controls - Premium */}
+      <section className="bg-white/80 backdrop-blur-lg border-y border-border/50 sticky top-20 z-30 py-6 shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Showing {sortedNeighborhoods.length} neighborhoods
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <TrendingUp className="w-4 h-4" />
+              <span>Showing <span className="font-semibold text-foreground">{sortedNeighborhoods.length}</span> neighborhoods</span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Sort by:</span>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <ArrowUpDown className="w-4 h-4" />
+                <span>Sort by:</span>
+              </div>
               <div className="flex space-x-2">
                 <Button
                   variant={sortBy === 'price' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSortBy('price')}
+                  className={sortBy === 'price' ? 'gradient-primary text-white shadow-premium' : ''}
                 >
+                  <DollarSign className="w-4 h-4 mr-1" />
                   Price
                 </Button>
                 <Button
                   variant={sortBy === 'safety' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSortBy('safety')}
+                  className={sortBy === 'safety' ? 'gradient-success text-white shadow-premium' : ''}
                 >
+                  <Shield className="w-4 h-4 mr-1" />
                   Safety
                 </Button>
                 <Button
                   variant={sortBy === 'schools' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setSortBy('schools')}
+                  className={sortBy === 'schools' ? 'gradient-warning text-white shadow-premium' : ''}
                 >
+                  <GraduationCap className="w-4 h-4 mr-1" />
                   Schools
                 </Button>
               </div>
@@ -163,84 +183,137 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Neighborhoods Grid */}
-      <section className="py-16 bg-gray-50">
+      {/* Neighborhoods Grid - Premium Design */}
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sortedNeighborhoods.map((neighborhood) => (
-              <Card key={neighborhood.name} className="hover:shadow-xl transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <CardTitle className="text-xl">{neighborhood.name}</CardTitle>
-                      <CardDescription>{neighborhood.city}</CardDescription>
+            {sortedNeighborhoods.map((neighborhood, index) => (
+              <div
+                key={neighborhood.name}
+                className="premium-card p-6 space-y-6 hover-lift animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <MapPin className="w-5 h-5 text-primary" />
+                      <h3 className="text-xl font-display font-bold text-foreground">
+                        {neighborhood.name}
+                      </h3>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {formatCurrency(neighborhood.avgPrice)}
-                      </div>
-                      <div className="text-xs text-gray-500">{neighborhood.priceRange}</div>
+                    <p className="text-sm text-muted-foreground">{neighborhood.city}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-display font-bold text-primary">
+                      {formatCurrency(neighborhood.avgPrice)}
+                    </div>
+                    <div className="text-xs text-muted-foreground bg-primary-light px-2 py-1 rounded-full mt-1">
+                      {neighborhood.priceRange}
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <div className="text-gray-600">Crime Rate</div>
-                      <div className="font-semibold">{neighborhood.crimeRate}</div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3 p-3 bg-success-light rounded-xl">
+                    <div className="icon-badge-sm bg-success text-white flex-shrink-0">
+                      <Shield className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="text-gray-600">Schools</div>
-                      <div className="font-semibold">{neighborhood.schoolRating}/10</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-600">Walk Score</div>
-                      <div className="font-semibold">{neighborhood.walkScore}/100</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-600">Transit Score</div>
-                      <div className="font-semibold">{neighborhood.transitScore}/100</div>
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">Safety</div>
+                      <div className="text-sm font-bold text-foreground truncate">{neighborhood.crimeRate}</div>
                     </div>
                   </div>
 
-                  {/* Amenities */}
-                  <div>
-                    <div className="text-xs text-gray-600 mb-2">Amenities:</div>
-                    <div className="flex flex-wrap gap-2">
-                      {neighborhood.amenities.map((amenity) => (
-                        <span
-                          key={amenity}
-                          className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                        >
-                          {amenity}
-                        </span>
-                      ))}
+                  <div className="flex items-center space-x-3 p-3 bg-warning-light rounded-xl">
+                    <div className="icon-badge-sm bg-warning text-white flex-shrink-0">
+                      <GraduationCap className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">Schools</div>
+                      <div className="text-sm font-bold text-foreground">{neighborhood.schoolRating}/10</div>
                     </div>
                   </div>
 
-                  <Button
-                    onClick={() => handleViewDetails(neighborhood)}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    View Details
-                  </Button>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center space-x-3 p-3 bg-primary-light rounded-xl">
+                    <div className="icon-badge-sm bg-primary text-white flex-shrink-0">
+                      <Trees className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">Walk Score</div>
+                      <div className="text-sm font-bold text-foreground">{neighborhood.walkScore}/100</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3 p-3 bg-info-light rounded-xl">
+                    <div className="icon-badge-sm bg-info text-white flex-shrink-0">
+                      <Bus className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">Transit</div>
+                      <div className="text-sm font-bold text-foreground">{neighborhood.transitScore}/100</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-3">Amenities</div>
+                  <div className="flex flex-wrap gap-2">
+                    {neighborhood.amenities.map((amenity) => (
+                      <span
+                        key={amenity}
+                        className="px-3 py-1.5 bg-secondary text-foreground text-xs font-medium rounded-lg border border-border/50"
+                      >
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* CTA Button */}
+                <Button
+                  onClick={() => handleViewDetails(neighborhood)}
+                  className="w-full btn-premium gradient-primary text-white shadow-premium hover:shadow-premium-lg"
+                >
+                  View Details
+                  <MapPin className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Map Placeholder */}
-      <section className="py-16 bg-white">
+      {/* Map Placeholder - Premium */}
+      <section className="py-20 bg-gradient-to-b from-white to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold mb-8 text-center">Interactive Map Coming Soon</h2>
-          <div className="bg-gray-200 rounded-lg h-96 flex items-center justify-center">
-            <div className="text-center text-gray-600">
-              <i className="fas fa-map-marked-alt text-6xl mb-4"></i>
-              <p className="text-xl">Interactive BC neighborhood map will be available here</p>
+          <div className="text-center mb-12 space-y-4">
+            <div className="inline-flex items-center px-4 py-2 bg-primary-light rounded-full text-sm font-semibold text-primary">
+              Coming Soon
+            </div>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              Interactive Map
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Explore neighborhoods with our interactive BC map
+            </p>
+          </div>
+
+          <div className="premium-card p-12 flex items-center justify-center bg-gradient-to-br from-secondary to-background min-h-[400px]">
+            <div className="text-center space-y-6">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-primary rounded-2xl shadow-premium">
+                <MapPin className="w-12 h-12 text-white" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-display font-bold text-foreground">
+                  Interactive BC Neighborhood Map
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Explore all BC neighborhoods on an interactive map with real-time pricing and data
+                </p>
+              </div>
             </div>
           </div>
         </div>

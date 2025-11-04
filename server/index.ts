@@ -22,6 +22,10 @@ import appointmentsRoutes from './routes/appointments';
 import propertiesRoutes from './routes/properties';
 import neighborhoodsRoutes from './routes/neighborhoods';
 import savedPropertiesRoutes from './routes/savedProperties';
+import chatbotRoutes from './routes/chatbot';
+
+// Services
+import { knowledgeUpdateService } from './services/knowledgeUpdateService';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,6 +93,7 @@ app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/neighborhoods', neighborhoodsRoutes);
 app.use('/api/saved-properties', savedPropertiesRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -126,6 +131,13 @@ app.listen(PORT, () => {
   if (isDevelopment) {
     console.log(`🎨 Frontend dev server: http://localhost:5173 (Vite)`);
     console.log(`\n💡 Admin phone number: ${process.env.ADMIN_PHONE_NUMBER || '+14034783995'}`);
+  }
+
+  // Start chatbot knowledge update service
+  try {
+    knowledgeUpdateService.start();
+  } catch (error) {
+    console.error('⚠️ Failed to start knowledge update service:', error);
   }
 
   console.log('\n');

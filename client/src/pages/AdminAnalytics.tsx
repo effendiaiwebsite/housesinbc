@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import Navigation from '@/components/Navigation';
+import AdminSidebar from '@/components/AdminSidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/useToast';
@@ -116,7 +117,11 @@ export default function AdminAnalytics() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex">
+        <AdminSidebar />
+
+        <main className="flex-1 md:ml-64 transition-all duration-300">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -387,6 +392,8 @@ export default function AdminAnalytics() {
             </CardContent>
           </Card>
         </div>
+      </div>
+        </main>
       </div>
     </div>
   );

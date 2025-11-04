@@ -7,6 +7,7 @@
 import { Route, Switch } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ChatWidget from '@/components/ChatWidget';
 
 // Auth pages
 import AdminLogin from '@/pages/AdminLogin';
@@ -27,6 +28,8 @@ import Dashboard from '@/pages/Dashboard';
 import AdminLeads from '@/pages/AdminLeads';
 import AdminAppointments from '@/pages/AdminAppointments';
 import AdminAnalytics from '@/pages/AdminAnalytics';
+import AdminChatbot from '@/pages/AdminChatbot';
+import AdminChatDetail from '@/pages/AdminChatDetail';
 
 // Client pages
 import ClientDashboard from '@/pages/ClientDashboard';
@@ -74,6 +77,18 @@ function App() {
           </ProtectedRoute>
         </Route>
 
+        <Route path="/admin/chatbot">
+          <ProtectedRoute requireRole="admin">
+            <AdminChatbot />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/chatbot/chat/:sessionId">
+          <ProtectedRoute requireRole="admin">
+            <AdminChatDetail />
+          </ProtectedRoute>
+        </Route>
+
         {/* Protected Client Routes */}
         <Route path="/client/dashboard">
           <ProtectedRoute requireRole="client">
@@ -99,6 +114,7 @@ function App() {
       </Switch>
 
       <Toaster />
+      <ChatWidget />
     </>
   );
 }

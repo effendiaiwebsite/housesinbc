@@ -44,6 +44,10 @@ export const collections = {
   otpCodes: db.collection('otp_codes'),
   users: db.collection('users'),
   savedProperties: db.collection('saved_properties'),
+  chatSessions: db.collection('chat_sessions'),
+  chatMessages: db.collection('chat_messages'),
+  chatKnowledge: db.collection('chat_knowledge'),
+  chatbotSettings: db.collection('chatbot_settings'),
 };
 
 export default db;
