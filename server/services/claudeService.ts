@@ -10,7 +10,7 @@ import type { ChatMessage } from '../../shared/chatbot-schema';
 
 export class ClaudeService {
   private anthropic: Anthropic;
-  private readonly MODEL = 'claude-3-5-sonnet-20241022';
+  private readonly MODEL = 'claude-sonnet-4-5-20250929';
   private readonly MAX_TOKENS = 1000;
 
   constructor() {

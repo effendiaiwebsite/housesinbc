@@ -147,7 +147,7 @@ router.post('/message', chatRateLimiter, async (req: Request, res: Response) => 
       content: sanitizedResponse,
       timestamp: new Date(),
       metadata: {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
       },
     });
 

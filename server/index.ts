@@ -36,6 +36,9 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 // ===== Middleware Setup =====
 
+// Trust proxy (required for Render, Heroku, etc.)
+app.set('trust proxy', 1);
+
 // CORS configuration for Flutter web app
 app.use(cors({
   origin: true, // Allow all origins in development
