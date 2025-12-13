@@ -78,6 +78,7 @@ export default function AppointmentBookingModal({
         notes: data.notes || '',
         clientPhone: data.phoneNumber,
         clientName: data.name,
+        ...(propertyDetails?.zpid && { zpid: propertyDetails.zpid }),
       };
 
       const response = await appointmentsAPI.create(appointmentData);

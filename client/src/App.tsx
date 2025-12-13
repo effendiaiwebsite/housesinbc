@@ -22,9 +22,25 @@ import Incentives from '@/pages/Incentives';
 import Blog from '@/pages/Blog';
 import Properties from '@/pages/Properties';
 import Neighborhoods from '@/pages/Neighborhoods';
+import Welcome from '@/pages/Welcome';
+import Quiz from '@/pages/Quiz';
+import PieChartResults from '@/pages/PieChartResults';
+import MilestoneDashboard from '@/pages/MilestoneDashboard';
+
+// Milestone pages
+import CreditScore from '@/pages/milestones/CreditScore';
+import FHSA from '@/pages/milestones/FHSA';
+import PreApproval from '@/pages/milestones/PreApproval';
+import MilestoneIncentives from '@/pages/milestones/Incentives';
+import MilestoneNeighborhoods from '@/pages/milestones/Neighborhoods';
+import Viewings from '@/pages/milestones/Viewings';
+import OfferBuilder from '@/pages/milestones/OfferBuilder';
 
 // Admin pages
 import Dashboard from '@/pages/Dashboard';
+import AdminUsers from '@/pages/AdminUsers';
+import AdminUserDetail from '@/pages/AdminUserDetail';
+import AdminOffers from '@/pages/AdminOffers';
 import AdminLeads from '@/pages/AdminLeads';
 import AdminAppointments from '@/pages/AdminAppointments';
 import AdminAnalytics from '@/pages/AdminAnalytics';
@@ -56,6 +72,24 @@ function App() {
         <Route path="/admin/dashboard">
           <ProtectedRoute requireRole="admin">
             <Dashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/users">
+          <ProtectedRoute requireRole="admin">
+            <AdminUsers />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/users/:userId">
+          <ProtectedRoute requireRole="admin">
+            <AdminUserDetail />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/offers">
+          <ProtectedRoute requireRole="admin">
+            <AdminOffers />
           </ProtectedRoute>
         </Route>
 
@@ -93,6 +127,66 @@ function App() {
         <Route path="/client/dashboard">
           <ProtectedRoute requireRole="client">
             <ClientDashboard />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/welcome">
+          <ProtectedRoute requireRole="client">
+            <Welcome />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/quiz">
+          <ProtectedRoute requireRole="client">
+            <Quiz />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/pie-chart">
+          <ProtectedRoute requireRole="client">
+            <PieChartResults />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/credit-score">
+          <ProtectedRoute requireRole="client">
+            <CreditScore />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/fhsa">
+          <ProtectedRoute requireRole="client">
+            <FHSA />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/pre-approval">
+          <ProtectedRoute requireRole="client">
+            <PreApproval />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/incentives">
+          <ProtectedRoute requireRole="client">
+            <MilestoneIncentives />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/neighborhoods">
+          <ProtectedRoute requireRole="client">
+            <MilestoneNeighborhoods />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/viewings">
+          <ProtectedRoute requireRole="client">
+            <Viewings />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/client/milestone/offer">
+          <ProtectedRoute requireRole="client">
+            <OfferBuilder />
           </ProtectedRoute>
         </Route>
 

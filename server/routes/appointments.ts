@@ -12,14 +12,31 @@ import { requireAuth, requireAdmin, validateBody } from '../middleware';
 const router = Router();
 
 // Appointment schema for validation
+// Accepts both mobile format (zpid, dateTime, type) and web format (propertyAddress, preferredDate, preferredTime)
 const appointmentSchema = z.object({
-  propertyAddress: z.string().min(5, 'Property address is required'),
-  preferredDate: z.string().datetime('Invalid date format'),
-  preferredTime: z.string().min(1, 'Time is required'),
+  // Mobile app fields
+  zpid: z.string().optional(),
+  dateTime: z.string().datetime().optional(),
+  type: z.enum(['in-person', 'virtual']).optional(),
+  // Web app fields (legacy)
+  propertyAddress: z.string().optional(),
+  preferredDate: z.string().datetime().optional(),
+  preferredTime: z.string().optional(),
+  // Common fields
   notes: z.string().optional(),
-  clientPhone: z.string().optional(), // For admin creating appointments
+  clientPhone: z.string().optional(),
   clientName: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // Either mobile format OR web format must be provided
+    const hasMobileFormat = data.zpid && data.dateTime;
+    const hasWebFormat = data.propertyAddress && data.preferredDate && data.preferredTime;
+    return hasMobileFormat || hasWebFormat;
+  },
+  {
+    message: 'Either provide (zpid + dateTime) for mobile or (propertyAddress + preferredDate + preferredTime) for web',
+  }
+);
 
 const updateAppointmentSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
@@ -36,9 +53,15 @@ const updateAppointmentSchema = z.object({
  */
 router.post('/', validateBody(appointmentSchema), async (req, res) => {
   try {
-    const { propertyAddress, preferredDate, preferredTime, notes, clientPhone, clientName } = req.body;
+    const { zpid, dateTime, type, notes, clientPhone, clientName, propertyAddress, preferredDate, preferredTime } = req.body;
     const isAuthenticated = req.session?.isAuthenticated;
     const isAdmin = req.session?.role === 'admin';
+
+    // Support both old and new formats
+    const finalZpid = zpid;
+    const finalDateTime = dateTime || preferredDate;
+    const finalType = type || 'in-person';
+    const finalPropertyAddress = propertyAddress || `Property ${zpid}`;
 
     let finalUserId: string;
     let finalClientName: string;
@@ -124,24 +147,89 @@ router.post('/', validateBody(appointmentSchema), async (req, res) => {
     }
 
     // Create the appointment
-    const appointmentData = {
+    const appointmentData: any = {
       userId: finalUserId,
       clientName: finalClientName,
       clientPhone: finalClientPhone,
-      propertyAddress,
-      preferredDate: new Date(preferredDate),
-      preferredTime,
+      propertyAddress: finalPropertyAddress,
+      dateTime: new Date(finalDateTime),
+      type: finalType,
+      preferredDate: new Date(finalDateTime), // Legacy field
+      preferredTime: preferredTime || new Date(finalDateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       notes: notes || '',
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
+    // Only include zpid if it's defined (Firestore doesn't allow undefined values)
+    if (finalZpid) {
+      appointmentData.zpid = finalZpid;
+    }
+
     const docRef = await collections.appointments.add(appointmentData);
+
+    // Fetch the created appointment to return it
+    const createdDoc = await docRef.get();
+    const createdAppointment = {
+      id: docRef.id,
+      ...createdDoc.data(),
+      dateTime: appointmentData.dateTime.toISOString(),
+      createdAt: appointmentData.createdAt.toISOString(),
+      updatedAt: appointmentData.updatedAt.toISOString(),
+    };
+
+    // Auto-complete milestones when booking appointment
+    try {
+      const progressSnapshot = await collections.progress
+        .where('userId', '==', finalClientPhone)
+        .limit(1)
+        .get();
+
+      if (!progressSnapshot.empty) {
+        const progressDoc = progressSnapshot.docs[0];
+        const progressData = progressDoc.data();
+        const updates: any = { updatedAt: new Date() };
+
+        // Auto-complete Step 6 (Search Properties) if not done
+        const step6Data = progressData?.milestones?.step6_searchProperties;
+        if (!step6Data || step6Data.status !== 'completed') {
+          updates[`milestones.step6_searchProperties`] = {
+            status: 'completed',
+            completedAt: new Date(),
+            data: { autoCompleted: true, reason: 'appointment_booked' },
+          };
+          console.log(`✅ Auto-completed step 6 for user ${finalClientPhone}`);
+        }
+
+        // Auto-complete Step 7 (Book Viewings) since they just booked
+        const step7Data = progressData?.milestones?.step7_bookViewing;
+        if (!step7Data || step7Data.status !== 'completed') {
+          updates[`milestones.step7_bookViewing`] = {
+            status: 'completed',
+            completedAt: new Date(),
+            data: {
+              appointmentId: docRef.id,
+              propertyAddress: finalPropertyAddress,
+              zpid: finalZpid,
+              scheduledDate: appointmentData.dateTime,
+              autoCompleted: true,
+            },
+          };
+          console.log(`✅ Auto-completed step 7 for user ${finalClientPhone}`);
+        }
+
+        await progressDoc.ref.update(updates);
+      }
+    } catch (progressError) {
+      // Don't fail the appointment if progress update fails
+      console.error('Failed to update progress:', progressError);
+    }
 
     res.status(201).json({
       success: true,
       message: 'Appointment created successfully. You can now log in with your phone number to view your appointments.',
+      appointment: createdAppointment, // Return the full appointment object for mobile app
       id: docRef.id,
     });
   } catch (error: any) {
@@ -174,17 +262,22 @@ router.get('/', requireAuth, async (req, res) => {
 
     const snapshot = await query.get();
 
-    const appointments = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      preferredDate: doc.data().preferredDate?.toDate?.() || doc.data().preferredDate,
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-      updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-    }));
+    const appointments = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        dateTime: data.dateTime?.toDate?.()?.toISOString() || data.preferredDate?.toDate?.()?.toISOString() || data.dateTime,
+        preferredDate: data.preferredDate?.toDate?.() || data.preferredDate,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+      };
+    });
 
     res.json({
       success: true,
-      data: appointments,
+      appointments: appointments, // Changed from 'data' to 'appointments' for mobile app
+      data: appointments, // Keep 'data' for backwards compatibility with web app
     });
   } catch (error: any) {
     console.error('Get appointments error:', error);

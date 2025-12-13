@@ -24,6 +24,7 @@ if (!admin.apps.length) {
       privateKey: privateKey,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     }),
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`,
   });
 
   console.log('✅ Firebase Admin initialized');
@@ -31,6 +32,9 @@ if (!admin.apps.length) {
 
 export const db = admin.firestore();
 export const auth = admin.auth();
+
+// Export admin for Firebase Auth verification
+export { admin };
 
 // Firestore collections references
 export const collections = {
@@ -48,6 +52,8 @@ export const collections = {
   chatMessages: db.collection('chat_messages'),
   chatKnowledge: db.collection('chat_knowledge'),
   chatbotSettings: db.collection('chatbot_settings'),
+  progress: db.collection('progress'),
+  quizResponses: db.collection('quiz_responses'),
 };
 
 export default db;

@@ -76,23 +76,20 @@ export default function Navigation() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  className={`
+                    group relative px-4 py-2.5 rounded-lg text-sm font-medium
+                    transition-all duration-200 flex items-center space-x-2
+                    ${isActive(link.href)
+                      ? 'text-primary bg-primary-light shadow-soft'
+                      : 'text-muted-foreground hover:text-primary hover:bg-secondary'
+                    }
+                  `}
                 >
-                  <a
-                    className={`
-                      group relative px-4 py-2.5 rounded-lg text-sm font-medium
-                      transition-all duration-200 flex items-center space-x-2
-                      ${isActive(link.href)
-                        ? 'text-primary bg-primary-light shadow-soft'
-                        : 'text-muted-foreground hover:text-primary hover:bg-secondary'
-                      }
-                    `}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{link.label}</span>
-                    {isActive(link.href) && (
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-gradient-primary rounded-full"></div>
-                    )}
-                  </a>
+                  <Icon className="w-4 h-4" />
+                  <span>{link.label}</span>
+                  {isActive(link.href) && (
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-gradient-primary rounded-full"></div>
+                  )}
                 </Link>
               );
             })}
@@ -167,21 +164,18 @@ export default function Navigation() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  className={`
+                    flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium
+                    transition-all duration-200
+                    ${isActive(link.href)
+                      ? 'bg-primary-light text-primary shadow-soft'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-primary'
+                    }
+                  `}
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  <a
-                    className={`
-                      flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium
-                      transition-all duration-200
-                      ${isActive(link.href)
-                        ? 'bg-primary-light text-primary shadow-soft'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-primary'
-                      }
-                    `}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{link.label}</span>
-                  </a>
+                  <Icon className="w-5 h-5" />
+                  <span>{link.label}</span>
                 </Link>
               );
             })}

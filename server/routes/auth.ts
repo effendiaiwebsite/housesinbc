@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { collections } from '../db';
+import { collections, admin } from '../db';
 import { generateOTP, sendOTP, isValidPhoneNumber } from '../sms';
 import { sendOTPSchema, verifyOTPSchema } from '../../shared/schema';
 import { validateBody } from '../middleware';
@@ -13,6 +13,7 @@ import { validateBody } from '../middleware';
 const router = Router();
 
 const ADMIN_PHONE_NUMBER = process.env.ADMIN_PHONE_NUMBER || '+14034783995';
+const ADMIN_EMAIL = 'satindersandhu138@gmail.com';
 const OTP_EXPIRY_MINUTES = 10;
 
 /**
@@ -225,8 +226,10 @@ router.get('/status', (req: Request, res: Response) => {
       authenticated: true,
       user: {
         id: req.session.userId,
+        email: req.session.email,
         phoneNumber: req.session.phoneNumber,
         role: req.session.role,
+        name: req.session.userName,
       },
     });
   }
@@ -255,6 +258,266 @@ router.post('/logout', (req: Request, res: Response) => {
       message: 'Logged out successfully',
     });
   });
+});
+
+/**
+ * POST /api/auth/google-signin
+ * Firebase Google Sign-In
+ */
+router.post('/google-signin', async (req: Request, res: Response) => {
+  try {
+    const { idToken, email, name, loginType } = req.body;
+
+    console.log('🔐 FIREBASE AUTH - Google Sign-In:');
+    console.log('  - email:', email);
+    console.log('  - loginType:', loginType);
+
+    if (!idToken || !email) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'idToken and email are required',
+      });
+    }
+
+    // Verify Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    console.log('  ✅ Firebase token verified');
+
+    // Determine role based on email and loginType
+    const role = (loginType === 'admin' || email === ADMIN_EMAIL) ? 'admin' : 'client';
+    console.log('  - Role assigned:', role);
+
+    // Find or create user
+    const userSnapshot = await collections.users
+      .where('email', '==', email)
+      .where('role', '==', role)
+      .limit(1)
+      .get();
+
+    let userId: string;
+
+    if (userSnapshot.empty) {
+      // Create new user
+      console.log('  - Creating NEW user');
+      const newUserRef = await collections.users.add({
+        email,
+        name: name || decodedToken.name,
+        role,
+        verified: true,
+        firebaseUid: decodedToken.uid,
+        lastLogin: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      userId = newUserRef.id;
+      console.log('  - New user created, ID:', userId);
+    } else {
+      // Update existing user
+      console.log('  - Found EXISTING user');
+      const userDoc = userSnapshot.docs[0];
+      userId = userDoc.id;
+      await userDoc.ref.update({
+        verified: true,
+        lastLogin: new Date(),
+        updatedAt: new Date(),
+        firebaseUid: decodedToken.uid,
+      });
+    }
+
+    // Create session
+    req.session.userId = userId;
+    req.session.email = email;
+    req.session.role = role;
+    req.session.userName = name || decodedToken.name;
+    req.session.isAuthenticated = true;
+
+    console.log('  ✅ Session created');
+
+    return res.json({
+      success: true,
+      message: 'Authentication successful',
+      user: {
+        id: userId,
+        email,
+        role,
+        name: name || decodedToken.name,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Google sign-in error:', error);
+    return res.status(401).json({
+      error: 'Authentication failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/auth/email-signin
+ * Firebase Email/Password Sign-In
+ */
+router.post('/email-signin', async (req: Request, res: Response) => {
+  try {
+    const { idToken, email, loginType } = req.body;
+
+    console.log('🔐 FIREBASE AUTH - Email Sign-In:');
+    console.log('  - email:', email);
+    console.log('  - loginType:', loginType);
+
+    if (!idToken || !email) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'idToken and email are required',
+      });
+    }
+
+    // Verify Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    console.log('  ✅ Firebase token verified');
+
+    // Determine role
+    const role = (loginType === 'admin' || email === ADMIN_EMAIL) ? 'admin' : 'client';
+    console.log('  - Role assigned:', role);
+
+    // Find user
+    const userSnapshot = await collections.users
+      .where('email', '==', email)
+      .where('role', '==', role)
+      .limit(1)
+      .get();
+
+    if (userSnapshot.empty) {
+      console.log('  ❌ User not found');
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'No account found with this email. Please sign up first.',
+      });
+    }
+
+    // Update existing user
+    const userDoc = userSnapshot.docs[0];
+    const userId = userDoc.id;
+    const userData = userDoc.data();
+
+    await userDoc.ref.update({
+      verified: true,
+      lastLogin: new Date(),
+      updatedAt: new Date(),
+      firebaseUid: decodedToken.uid,
+    });
+
+    // Create session
+    req.session.userId = userId;
+    req.session.email = email;
+    req.session.role = role;
+    req.session.userName = userData.name;
+    req.session.isAuthenticated = true;
+
+    console.log('  ✅ Session created');
+
+    return res.json({
+      success: true,
+      message: 'Authentication successful',
+      user: {
+        id: userId,
+        email,
+        role,
+        name: userData.name,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Email sign-in error:', error);
+    return res.status(401).json({
+      error: 'Authentication failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/auth/email-signup
+ * Firebase Email/Password Sign-Up
+ */
+router.post('/email-signup', async (req: Request, res: Response) => {
+  try {
+    const { idToken, email, name, loginType } = req.body;
+
+    console.log('🔐 FIREBASE AUTH - Email Sign-Up:');
+    console.log('  - email:', email);
+    console.log('  - loginType:', loginType);
+
+    if (!idToken || !email) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'idToken and email are required',
+      });
+    }
+
+    // Verify Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    console.log('  ✅ Firebase token verified');
+
+    // Determine role
+    const role = (loginType === 'admin' || email === ADMIN_EMAIL) ? 'admin' : 'client';
+    console.log('  - Role assigned:', role);
+
+    // Check if user already exists
+    const existingUserSnapshot = await collections.users
+      .where('email', '==', email)
+      .where('role', '==', role)
+      .limit(1)
+      .get();
+
+    if (!existingUserSnapshot.empty) {
+      console.log('  ⚠️  User already exists');
+      return res.status(400).json({
+        error: 'User already exists',
+        message: 'An account with this email already exists. Please sign in instead.',
+      });
+    }
+
+    // Create new user
+    console.log('  - Creating NEW user');
+    const newUserRef = await collections.users.add({
+      email,
+      name: name || decodedToken.name,
+      role,
+      verified: true,
+      firebaseUid: decodedToken.uid,
+      lastLogin: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const userId = newUserRef.id;
+    console.log('  - New user created, ID:', userId);
+
+    // Create session
+    req.session.userId = userId;
+    req.session.email = email;
+    req.session.role = role;
+    req.session.userName = name || decodedToken.name;
+    req.session.isAuthenticated = true;
+
+    console.log('  ✅ Session created');
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      user: {
+        id: userId,
+        email,
+        role,
+        name: name || decodedToken.name,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Email sign-up error:', error);
+    return res.status(400).json({
+      error: 'Sign up failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 });
 
 export default router;

@@ -1,556 +1,379 @@
 /**
  * Client Dashboard Page
  *
- * Client portal for viewing and managing their appointments
+ * Main dashboard for authenticated clients - shows milestone journey or welcome prompt
  */
 
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '../hooks/useAuth';
-import { appointmentsAPI, savedPropertiesAPI } from '../lib/api';
-import Navigation from '../components/Navigation';
-import Footer from '../components/Footer';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { useToast } from '../hooks/useToast';
-import { formatCurrency } from '../lib/utils';
+import { Card } from '../components/ui/card';
+import { Trophy, Sparkles, Home, TrendingUp, MapPin, ArrowRight, Loader2 } from 'lucide-react';
+import MilestoneCard from '../components/MilestoneCard';
+import ProgressRing from '../components/ProgressRing';
+import Navigation from '../components/Navigation';
+import {
+  CreditCard,
+  PiggyBank,
+  FileCheck,
+  Gift,
+  Calendar,
+  FileText,
+} from 'lucide-react';
+
+const MILESTONES = [
+  {
+    id: 'step1_creditScore',
+    step: 1,
+    title: 'Check Your Credit Score',
+    description: 'Get your free credit report and understand your borrowing power',
+    icon: CreditCard,
+    estimatedTime: '5 min',
+    badge: '🎯 Foundation',
+    route: '/client/milestone/credit-score',
+  },
+  {
+    id: 'step2_fhsa',
+    step: 2,
+    title: 'Open FHSA Account',
+    description: 'Tax-free savings for your down payment (save up to $8K/year)',
+    icon: PiggyBank,
+    estimatedTime: '10 min',
+    badge: '💰 Savings Pro',
+    route: '/client/milestone/fhsa',
+  },
+  {
+    id: 'step3_preApproval',
+    step: 3,
+    title: 'Get Pre-Approved',
+    description: 'Compare personalized rates from 10+ lenders without credit hits',
+    icon: FileCheck,
+    estimatedTime: '15 min',
+    badge: '🏅 Pre-Approved',
+    route: '/client/milestone/pre-approval',
+  },
+  {
+    id: 'step4_incentives',
+    step: 4,
+    title: 'Unlock BC Incentives',
+    description: 'PTT exemption, GST rebate, FHSA benefits (avg. $18K savings)',
+    icon: Gift,
+    estimatedTime: 'Auto',
+    badge: '🎁 Savings Expert',
+    route: '/client/milestone/incentives',
+  },
+  {
+    id: 'step5_neighborhoods',
+    step: 5,
+    title: 'Explore Neighborhoods',
+    description: 'Discover Surrey hotspots: Whalley, Fleetwood, Cloverdale',
+    icon: MapPin,
+    estimatedTime: '20 min',
+    badge: '🗺️ Explorer',
+    route: '/client/milestone/neighborhoods',
+  },
+  {
+    id: 'step6_searchProperties',
+    step: 6,
+    title: 'Search Properties',
+    description: 'Browse live MLS listings filtered to your budget',
+    icon: Home,
+    estimatedTime: '30 min',
+    badge: '🔍 House Hunter',
+    route: '/properties',
+  },
+  {
+    id: 'step7_bookViewing',
+    step: 7,
+    title: 'Book Viewings',
+    description: 'Schedule tours with Rida for your top 3-5 properties',
+    icon: Calendar,
+    estimatedTime: '10 min',
+    badge: '👀 Tour Master',
+    route: '/client/milestone/viewings',
+  },
+  {
+    id: 'step8_makeOffer',
+    step: 8,
+    title: 'Make an Offer',
+    description: 'Use our offer builder and submit to Rida for review',
+    icon: FileText,
+    estimatedTime: '20 min',
+    badge: '🏆 Homeowner',
+    route: '/client/milestone/offer',
+  },
+];
 
 export default function ClientDashboard() {
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const [hasQuizData, setHasQuizData] = useState(false);
+  const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [savedProperties, setSavedProperties] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'saved' | 'appointments'>('overview');
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingForm, setBookingForm] = useState({
-    propertyAddress: '',
-    preferredDate: '',
-    preferredTime: '',
-    notes: '',
-  });
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !authLoading) {
       setLocation('/client/login');
       return;
     }
 
-    loadData();
-  }, [isAuthenticated]);
+    if (isAuthenticated && user) {
+      loadUserData();
+    }
+  }, [isAuthenticated, user, authLoading]);
 
-  const loadData = async () => {
-    await Promise.all([loadAppointments(), loadSavedProperties()]);
-  };
+  const loadUserData = async () => {
+    if (!user?.id) return;
 
-  const loadAppointments = async () => {
     try {
       setLoading(true);
-      const response = await appointmentsAPI.getAll();
-      setAppointments(response.data || []);
-    } catch (error: any) {
-      console.error('Load appointments error:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load appointments',
-        variant: 'destructive',
-      });
+
+      // Use user ID (works for both phone and email-based users)
+      const userId = user.id;
+
+      // Check if user has completed quiz
+      const quizResponse = await fetch(`/api/quiz/response/${userId}`);
+      const quizResult = await quizResponse.json();
+
+      if (quizResult.success && quizResult.data) {
+        setHasQuizData(true);
+
+        // Load progress data
+        const progressResponse = await fetch(`/api/progress/${userId}`);
+        const progressResult = await progressResponse.json();
+
+        if (progressResult.success && progressResult.data) {
+          setProgress(progressResult.data);
+        }
+      } else {
+        setHasQuizData(false);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setHasQuizData(false);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadSavedProperties = async () => {
-    try {
-      const response = await savedPropertiesAPI.getAll();
-      setSavedProperties(response.data || []);
-    } catch (error: any) {
-      console.error('Load saved properties error:', error);
+  const getMilestoneStatus = (milestoneId: string): 'locked' | 'available' | 'in_progress' | 'completed' => {
+    if (!progress || !progress.milestones) return 'locked';
+
+    const milestone = progress.milestones[milestoneId];
+    if (!milestone) {
+      // Property search steps (6, 7, 8) are always available after quiz
+      // They can be done in any order from the properties page
+      if (['step6_searchProperties', 'step7_bookViewing', 'step8_makeOffer'].includes(milestoneId)) {
+        return 'available';
+      }
+      return 'locked';
+    }
+
+    // Return actual status if completed or in_progress
+    if (milestone.status === 'completed' || milestone.status === 'in_progress') {
+      return milestone.status;
+    }
+
+    // Check if milestone is unlocked
+    const milestoneIndex = MILESTONES.findIndex(m => m.id === milestoneId);
+
+    // First milestone is always available
+    if (milestoneIndex === 0) {
+      return 'available';
+    }
+
+    // Property search steps are always available
+    if (['step6_searchProperties', 'step7_bookViewing', 'step8_makeOffer'].includes(milestoneId)) {
+      return 'available';
+    }
+
+    // Check if previous milestone is completed
+    const previousMilestone = MILESTONES[milestoneIndex - 1];
+    if (previousMilestone && progress.milestones[previousMilestone.id]?.status === 'completed') {
+      return 'available';
+    }
+
+    return 'locked';
+  };
+
+  const handleMilestoneClick = (milestone: typeof MILESTONES[0]) => {
+    const status = getMilestoneStatus(milestone.id);
+    if (status !== 'locked') {
+      setLocation(milestone.route);
     }
   };
 
-  const handleRemoveSavedProperty = async (id: string) => {
-    if (!confirm('Remove this property from your saved list?')) return;
+  const completedCount = progress?.milestones
+    ? Object.values(progress.milestones).filter((m: any) => m.status === 'completed').length
+    : 0;
 
-    try {
-      await savedPropertiesAPI.delete(id);
-      toast({
-        title: 'Removed',
-        description: 'Property removed from saved list',
-      });
-      loadSavedProperties();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to remove property',
-        variant: 'destructive',
-      });
+  const overallProgress = progress?.overallProgress || 0;
+
+  const getMotivationalMessage = () => {
+    if (overallProgress === 0) {
+      return "Let's get started! Start with checking your credit score - it only takes 5 minutes!";
+    } else if (overallProgress < 50) {
+      return 'Great progress! Keep going! Every step brings you closer to homeownership.';
+    } else if (overallProgress < 100) {
+      return "You're more than halfway there! Your dream home is within reach.";
     }
+    return '';
   };
 
-  const handleBookAppointment = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      // Convert date and time to ISO string
-      const dateTime = new Date(`${bookingForm.preferredDate}T${bookingForm.preferredTime}`);
-
-      await appointmentsAPI.create({
-        propertyAddress: bookingForm.propertyAddress,
-        preferredDate: dateTime.toISOString(),
-        preferredTime: bookingForm.preferredTime,
-        notes: bookingForm.notes,
-      });
-
-      toast({
-        title: 'Success!',
-        description: 'Your appointment has been booked. We\'ll contact you shortly to confirm.',
-      });
-
-      setShowBookingModal(false);
-      setBookingForm({
-        propertyAddress: '',
-        preferredDate: '',
-        preferredTime: '',
-        notes: '',
-      });
-
-      loadAppointments();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to book appointment',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleCancelAppointment = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this appointment?')) return;
-
-    try {
-      await appointmentsAPI.update(id, { status: 'cancelled' });
-
-      toast({
-        title: 'Cancelled',
-        description: 'Your appointment has been cancelled',
-      });
-
-      loadAppointments();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to cancel appointment',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const formatDate = (date: any) => {
-    if (!date) return 'N/A';
-    const d = date instanceof Date ? date : new Date(date);
-    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const upcomingAppointments = appointments.filter(
-    apt => apt.status !== 'cancelled' && apt.status !== 'completed'
-  );
-
-  const pastAppointments = appointments.filter(
-    apt => apt.status === 'cancelled' || apt.status === 'completed'
-  );
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading your appointments...</p>
+      <>
+        <Navigation />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navigation />
-
-      <main className="flex-grow container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {user?.phoneNumber}</p>
+  // Show welcome prompt if no quiz data
+  if (!hasQuizData) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 flex items-center justify-center px-4">
+          <Card className="max-w-2xl w-full p-8 text-center">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-600 to-green-600 rounded-full mb-4">
+              <Home className="h-10 w-10 text-white" />
             </div>
-            <Button onClick={() => setShowBookingModal(true)} size="lg">
-              <i className="fas fa-plus mr-2"></i>
-              Book Viewing
-            </Button>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Welcome to Your Home-Buying Journey!
+            </h1>
+            <p className="text-xl text-gray-600">
+              Let's find your dream home in Surrey, BC
+            </p>
           </div>
 
-          {/* Tabs */}
-          <div className="flex space-x-2 border-b">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'overview'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-th-large mr-2"></i>
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('saved')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'saved'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-heart mr-2"></i>
-              Saved Properties ({savedProperties.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('appointments')}
-              className={`px-6 py-3 font-medium transition-colors ${
-                activeTab === 'appointments'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <i className="fas fa-calendar mr-2"></i>
-              Appointments ({appointments.length})
-            </button>
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="text-3xl mb-2">⏱️</div>
+              <div className="font-semibold">2-Minute Quiz</div>
+              <div className="text-sm text-gray-600">Quick & easy</div>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg">
+              <div className="text-3xl mb-2">💰</div>
+              <div className="font-semibold">$18K+ Savings</div>
+              <div className="text-sm text-gray-600">BC Incentives</div>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <div className="text-3xl mb-2">🎯</div>
+              <div className="font-semibold">8-Step Journey</div>
+              <div className="text-sm text-gray-600">Guided process</div>
+            </div>
           </div>
+
+          <Button
+            onClick={() => setLocation('/client/welcome')}
+            size="lg"
+            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-lg px-8 py-6"
+          >
+            Start Your Journey
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+
+          <p className="mt-4 text-sm text-gray-500">
+            Logged in as {user?.email || user?.phoneNumber}
+          </p>
+        </Card>
+      </div>
+      </>
+    );
+  }
+
+  // Show milestone dashboard
+  return (
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-blue-600 to-green-600 rounded-full mb-4">
+            <Trophy className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Your Home-Buying Journey</h1>
+          <p className="text-xl text-gray-600">
+            {completedCount} of 8 milestones completed
+          </p>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-600">Saved Properties</p>
-                    <p className="text-2xl font-bold text-blue-600">{savedProperties.length}</p>
-                  </div>
-                  <i className="fas fa-heart text-3xl text-blue-600"></i>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-600">Upcoming Appointments</p>
-                    <p className="text-2xl font-bold text-green-600">{upcomingAppointments.length}</p>
-                  </div>
-                  <i className="fas fa-calendar text-3xl text-green-600"></i>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Appointments</p>
-                    <p className="text-2xl font-bold text-purple-600">{appointments.length}</p>
-                  </div>
-                  <i className="fas fa-calendar-check text-3xl text-purple-600"></i>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Progress Ring */}
+        <div className="flex justify-center mb-8">
+          <ProgressRing progress={overallProgress} size={200} />
+        </div>
 
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {upcomingAppointments.length > 0 ? (
-                  <div className="space-y-3">
-                    {upcomingAppointments.slice(0, 3).map((apt: any) => (
-                      <div key={apt.id} className="p-3 border rounded-lg">
-                        <p className="font-medium text-sm">{apt.propertyAddress}</p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {formatDate(apt.preferredDate)} at {apt.preferredTime}
-                        </p>
-                        <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs ${
-                          apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {apt.status}
-                        </span>
-                      </div>
-                    ))}
-                    <Button
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={() => setActiveTab('appointments')}
-                    >
-                      View All Appointments
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <i className="fas fa-calendar-xmark text-4xl text-gray-300 mb-3"></i>
-                    <p className="text-gray-500 text-sm">No recent activity</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        {/* Completion Celebration */}
+        {overallProgress === 100 && (
+          <div className="mb-8 p-6 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-lg text-center text-white">
+            <Trophy className="h-12 w-12 mx-auto mb-2" />
+            <h2 className="text-2xl font-bold">Journey Complete!</h2>
+            <p className="text-lg">Rida will contact you soon to finalize your offer!</p>
           </div>
         )}
 
-        {activeTab === 'saved' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Saved Properties</CardTitle>
-              <CardDescription>Properties you've saved for later</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {savedProperties.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {savedProperties.map((saved: any) => (
-                    <div key={saved.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="h-48 bg-gray-200">
-                        <img
-                          src={saved.propertyData?.imgSrc || 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400'}
-                          alt={saved.propertyData?.streetAddress}
-                          className="w-full h-full object-cover"
-                          onError={(e: any) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400';
-                          }}
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-xl font-bold text-blue-600 mb-2">
-                          {saved.propertyData?.price ? formatCurrency(saved.propertyData.price) : 'Contact for price'}
-                        </p>
-                        <p className="text-sm text-gray-700 mb-3">{saved.propertyData?.streetAddress}</p>
-                        <div className="flex items-center space-x-3 text-sm text-gray-600 mb-4">
-                          {saved.propertyData?.bedrooms && (
-                            <span><i className="fas fa-bed mr-1"></i>{saved.propertyData.bedrooms}</span>
-                          )}
-                          {saved.propertyData?.bathrooms && (
-                            <span><i className="fas fa-bath mr-1"></i>{saved.propertyData.bathrooms}</span>
-                          )}
-                          {saved.propertyData?.livingArea && (
-                            <span><i className="fas fa-ruler-combined mr-1"></i>{saved.propertyData.livingArea} sqft</span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 text-red-600 hover:text-red-700"
-                            onClick={() => handleRemoveSavedProperty(saved.id)}
-                          >
-                            <i className="fas fa-trash mr-2"></i>
-                            Remove
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              setBookingForm({ ...bookingForm, propertyAddress: saved.propertyData?.streetAddress });
-                              setShowBookingModal(true);
-                            }}
-                          >
-                            <i className="fas fa-calendar mr-2"></i>
-                            Book Viewing
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <i className="fas fa-heart text-5xl text-gray-300 mb-4"></i>
-                  <p className="text-gray-500 mb-4">No saved properties yet</p>
-                  <Button variant="outline" onClick={() => setLocation('/properties')}>
-                    Browse Properties
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Motivational Banner */}
+        {overallProgress < 100 && (
+          <div className="mb-8 p-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-center text-white">
+            <Sparkles className="h-8 w-8 mx-auto mb-2" />
+            <p className="text-lg font-medium">{getMotivationalMessage()}</p>
+          </div>
         )}
 
-        {activeTab === 'appointments' && (
-          <>
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-                <CardDescription>Your scheduled property viewings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {upcomingAppointments.length > 0 ? (
-                  <div className="space-y-4">
-                    {upcomingAppointments.map((apt: any) => (
-                      <div key={apt.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-grow">
-                            <h3 className="font-semibold text-lg">{apt.propertyAddress}</h3>
-                            <p className="text-gray-600 mt-1">
-                              <i className="fas fa-calendar mr-2"></i>
-                              {formatDate(apt.preferredDate)} at {apt.preferredTime}
-                            </p>
-                            {apt.notes && (
-                              <p className="text-sm text-gray-500 mt-2">
-                                <i className="fas fa-note-sticky mr-2"></i>
-                                {apt.notes}
-                              </p>
-                            )}
-                            <span className={`inline-block mt-3 px-3 py-1 rounded-full text-xs font-medium ${
-                              apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                              apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {apt.status === 'pending' ? 'Pending Confirmation' : apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
-                            </span>
-                          </div>
-                          {apt.status !== 'cancelled' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCancelAppointment(apt.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <i className="fas fa-calendar-xmark text-5xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-500">No upcoming appointments</p>
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={() => setShowBookingModal(true)}
-                    >
-                      Book Your First Viewing
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+        {/* Milestone Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {MILESTONES.map((milestone, index) => (
+            <div
+              key={milestone.id}
+              style={{ animationDelay: `${index * 0.1}s` }}
+              className="animate-fade-in"
+            >
+              <MilestoneCard
+                stepNumber={milestone.step}
+                title={milestone.title}
+                description={milestone.description}
+                icon={milestone.icon}
+                status={getMilestoneStatus(milestone.id)}
+                estimatedTime={milestone.estimatedTime}
+                badge={milestone.badge}
+                onStart={() => handleMilestoneClick(milestone)}
+              />
+            </div>
+          ))}
+        </div>
 
-            {pastAppointments.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Past Appointments</CardTitle>
-                  <CardDescription>Your appointment history</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {pastAppointments.map((apt: any) => (
-                      <div key={apt.id} className="border rounded-lg p-4 opacity-75">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{apt.propertyAddress}</p>
-                            <p className="text-sm text-gray-600">
-                              {formatDate(apt.preferredDate)} at {apt.preferredTime}
-                            </p>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            apt.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {apt.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </>
+        {/* Help Section */}
+        <Card className="p-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center">
+          <h3 className="text-xl font-semibold mb-2">Need Help?</h3>
+          <p className="mb-4">Rida is here to guide you through every step</p>
+          <div className="flex justify-center gap-4">
+            <Button variant="secondary">
+              💬 Chat with AI
+            </Button>
+            <Button variant="secondary">
+              📅 Book Free Consultation
+            </Button>
+          </div>
+        </Card>
+
+        {/* Confetti Animation */}
+        {showConfetti && (
+          <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+            <div className="text-9xl animate-bounce">🎉</div>
+          </div>
         )}
-      </main>
-
-      {/* Booking Modal */}
-      <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Book Property Viewing</DialogTitle>
-            <DialogDescription>
-              Schedule an appointment to view a property
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleBookAppointment} className="space-y-4">
-            <div>
-              <Label htmlFor="propertyAddress">Property Address</Label>
-              <Input
-                id="propertyAddress"
-                placeholder="123 Main St, Vancouver, BC"
-                value={bookingForm.propertyAddress}
-                onChange={e => setBookingForm({ ...bookingForm, propertyAddress: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="preferredDate">Preferred Date</Label>
-                <Input
-                  id="preferredDate"
-                  type="date"
-                  value={bookingForm.preferredDate}
-                  onChange={e => setBookingForm({ ...bookingForm, preferredDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="preferredTime">Preferred Time</Label>
-                <Input
-                  id="preferredTime"
-                  type="time"
-                  value={bookingForm.preferredTime}
-                  onChange={e => setBookingForm({ ...bookingForm, preferredTime: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Input
-                id="notes"
-                placeholder="Any specific requirements..."
-                value={bookingForm.notes}
-                onChange={e => setBookingForm({ ...bookingForm, notes: e.target.value })}
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowBookingModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">
-                Book Appointment
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Footer />
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

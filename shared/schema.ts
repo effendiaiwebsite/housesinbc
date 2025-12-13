@@ -168,3 +168,215 @@ export interface UserDocument {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// ===== Quiz & Onboarding Schemas =====
+
+export const quizSchema = z.object({
+  income: z.number().min(0).max(1000000, 'Income must be between $0 and $1,000,000'),
+  savings: z.number().min(0).max(500000, 'Savings must be between $0 and $500,000'),
+  hasRRSP: z.boolean(),
+  propertyType: z.enum(['condo', 'townhome', 'detached']),
+  timeline: z.enum(['1-3', '3-6', '6-12']),
+});
+
+export const creditScoreSchema = z.object({
+  score: z.number().min(300).max(900, 'Credit score must be between 300 and 900'),
+  method: z.enum(['manual', 'api']),
+});
+
+export const fhsaDataSchema = z.object({
+  opened: z.boolean(),
+  provider: z.string().optional(),
+  proofUrl: z.string().url().optional(),
+});
+
+export const ratePreferenceSchema = z.object({
+  lender: z.string(),
+  advertisedRate: z.number(),
+  personalizedRate: z.number(),
+  type: z.enum(['fixed', 'variable']),
+  term: z.number().min(1).max(10),
+  monthlyPayment: z.number(),
+  stressTestPayment: z.number(),
+  approvalOdds: z.enum(['high', 'medium', 'low']),
+});
+
+// ===== Milestone Progress Schemas =====
+
+export const milestoneStatusSchema = z.enum(['pending', 'in_progress', 'completed']);
+
+export const milestone1Schema = z.object({
+  status: milestoneStatusSchema,
+  data: z.object({
+    score: z.number().optional(),
+    method: z.enum(['manual', 'api']).optional(),
+  }).optional(),
+  completedAt: z.date().optional(),
+});
+
+export const milestone2Schema = z.object({
+  status: milestoneStatusSchema,
+  data: fhsaDataSchema.optional(),
+  completedAt: z.date().optional(),
+});
+
+export const milestone3Schema = z.object({
+  status: milestoneStatusSchema,
+  data: z.object({
+    ratePreferences: z.array(ratePreferenceSchema).optional(),
+    documentsUploaded: z.array(z.string()).optional(),
+    approvedAmount: z.number().optional(),
+  }).optional(),
+  completedAt: z.date().optional(),
+});
+
+export const milestone4Schema = z.object({
+  status: milestoneStatusSchema.default('completed'),
+  data: z.object({
+    totalSavings: z.number(),
+  }),
+  completedAt: z.date(),
+});
+
+export const milestone5Schema = z.object({
+  status: milestoneStatusSchema,
+  data: z.object({
+    viewedNeighborhoods: z.array(z.string()).optional(),
+  }).optional(),
+  completedAt: z.date().optional(),
+});
+
+export const milestone6Schema = z.object({
+  status: milestoneStatusSchema,
+  data: z.object({
+    savedCount: z.number().optional(),
+  }).optional(),
+  completedAt: z.date().optional(),
+});
+
+export const milestone7Schema = z.object({
+  status: milestoneStatusSchema,
+  data: z.object({
+    appointmentIds: z.array(z.string()).optional(),
+  }).optional(),
+  completedAt: z.date().optional(),
+});
+
+export const milestone8Schema = z.object({
+  status: milestoneStatusSchema,
+  data: z.object({
+    offerIds: z.array(z.string()).optional(),
+  }).optional(),
+  completedAt: z.date().optional(),
+});
+
+export const userProgressSchema = z.object({
+  quizResponseId: z.string(),
+  milestones: z.object({
+    step1_creditScore: milestone1Schema,
+    step2_fhsa: milestone2Schema,
+    step3_preApproval: milestone3Schema,
+    step4_incentives: milestone4Schema,
+    step5_neighborhoods: milestone5Schema,
+    step6_searchProperties: milestone6Schema,
+    step7_bookViewing: milestone7Schema,
+    step8_makeOffer: milestone8Schema,
+  }),
+  overallProgress: z.number().min(0).max(100),
+});
+
+// ===== Offer Schema =====
+
+export const offerSchema = z.object({
+  propertyZpid: z.string().optional(),
+  propertyAddress: z.string().min(5, 'Property address is required'),
+  propertyDetails: z.object({
+    price: z.number().positive(),
+    beds: z.number().min(0).optional(),
+    baths: z.number().min(0).optional(),
+  }),
+  offerDetails: z.object({
+    offerPrice: z.number().positive('Offer price must be positive'),
+    subjects: z.array(z.string()).default(['financing', 'inspection']),
+    notes: z.string().optional(),
+  }),
+});
+
+export const updateOfferSchema = z.object({
+  status: z.enum(['draft', 'submitted', 'under_review', 'accepted', 'rejected', 'withdrawn']),
+  adminNotes: z.string().optional(),
+});
+
+// ===== Personalized Rate Request Schema =====
+
+export const personalizeRatesRequestSchema = z.object({
+  income: z.number().positive(),
+  creditScore: z.number().min(300).max(900),
+  downPaymentPercent: z.number().min(0).max(100),
+  amortizationYears: z.number().min(5).max(30).default(25),
+  term: z.number().min(1).max(10).default(5),
+  loanAmount: z.number().positive().optional(),
+});
+
+// ===== TypeScript Types =====
+
+export type QuizData = z.infer<typeof quizSchema>;
+export type CreditScoreData = z.infer<typeof creditScoreSchema>;
+export type FHSAData = z.infer<typeof fhsaDataSchema>;
+export type RatePreference = z.infer<typeof ratePreferenceSchema>;
+export type MilestoneStatus = z.infer<typeof milestoneStatusSchema>;
+export type UserProgress = z.infer<typeof userProgressSchema>;
+export type OfferInput = z.infer<typeof offerSchema>;
+export type UpdateOfferInput = z.infer<typeof updateOfferSchema>;
+export type PersonalizeRatesRequest = z.infer<typeof personalizeRatesRequestSchema>;
+
+// ===== Firestore Document Types =====
+
+export interface QuizResponseDocument extends QuizData {
+  id: string;
+  userId?: string;
+  sessionId: string;
+  calculatedAffordability: number;
+  calculatedIncentives: {
+    ptt: number;
+    gst: number;
+    fhsa: number;
+    total: number;
+  };
+  createdAt: Date;
+}
+
+export interface UserProgressDocument extends UserProgress {
+  id: string;
+  userId: string;
+  updatedAt: Date;
+}
+
+export interface OfferDocument extends OfferInput {
+  id: string;
+  userId: string;
+  status: 'draft' | 'submitted' | 'under_review' | 'accepted' | 'rejected' | 'withdrawn';
+  submittedAt?: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  adminNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MortgageRate {
+  lender: string;
+  type: 'fixed' | 'variable';
+  term: number;
+  rate: number;
+  province: string;
+  lastUpdated?: Date;
+}
+
+export interface MortgageRatesCacheDocument {
+  id: string;
+  province: string;
+  rates: MortgageRate[];
+  cachedAt: Date;
+  expiresAt: Date;
+}

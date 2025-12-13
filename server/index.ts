@@ -23,6 +23,11 @@ import propertiesRoutes from './routes/properties';
 import neighborhoodsRoutes from './routes/neighborhoods';
 import savedPropertiesRoutes from './routes/savedProperties';
 import chatbotRoutes from './routes/chatbot';
+import quizRoutes from './routes/quiz';
+import progressRoutes from './routes/progress';
+import ratesRoutes from './routes/rates';
+import offersRoutes from './routes/offers';
+import uploadRoutes from './routes/upload';
 
 // Services
 import { knowledgeUpdateService } from './services/knowledgeUpdateService';
@@ -97,6 +102,11 @@ app.use('/api/properties', propertiesRoutes);
 app.use('/api/neighborhoods', neighborhoodsRoutes);
 app.use('/api/saved-properties', savedPropertiesRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/progress', progressRoutes);
+app.use('/api/rates', ratesRoutes);
+app.use('/api/offers', offersRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

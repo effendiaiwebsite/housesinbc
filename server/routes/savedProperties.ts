@@ -13,20 +13,28 @@ const router = Router();
 
 // Schema for saving a property
 const savePropertySchema = z.object({
-  phoneNumber: z.string().min(10),
-  clientName: z.string().min(2),
   zpid: z.string(),
+  // For authenticated mobile app requests
+  property: z.any().optional(),
+  // For unauthenticated/web app requests
+  phoneNumber: z.string().optional(),
+  clientName: z.string().optional(),
   propertyData: z.object({
-    streetAddress: z.string(),
+    streetAddress: z.string().optional(),
+    address: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
     zipcode: z.string().optional(),
     price: z.number().optional(),
+    beds: z.number().optional(),
     bedrooms: z.number().optional(),
+    baths: z.number().optional(),
     bathrooms: z.number().optional(),
+    sqft: z.number().optional(),
     livingArea: z.number().optional(),
     imgSrc: z.string().optional(),
-  }),
+    images: z.array(z.string()).optional(),
+  }).optional(),
 });
 
 /**
@@ -35,30 +43,55 @@ const savePropertySchema = z.object({
  */
 router.post('/', validateBody(savePropertySchema), async (req: Request, res: Response) => {
   try {
-    const { phoneNumber, clientName, zpid, propertyData } = req.body;
+    const { phoneNumber, clientName, zpid, propertyData, property } = req.body;
+    const isAuthenticated = req.session?.isAuthenticated;
 
-    // Find or create user
     let userId: string;
-    const userSnapshot = await collections.users
-      .where('phoneNumber', '==', phoneNumber)
-      .where('role', '==', 'client')
-      .limit(1)
-      .get();
+    let finalPropertyData: any;
+    let finalClientName: string;
+    let finalClientPhone: string;
 
-    if (userSnapshot.empty) {
-      // Auto-register new client user
-      const newUserRef = await collections.users.add({
-        phoneNumber,
-        name: clientName,
-        role: 'client',
-        verified: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      userId = newUserRef.id;
-      console.log(`✅ Auto-registered new user: ${clientName} (${phoneNumber})`);
+    // Handle authenticated mobile/web app requests
+    if (isAuthenticated && req.session.userId) {
+      userId = req.session.userId;
+      finalClientName = req.session.userName || 'Unknown';
+      finalClientPhone = req.session.phoneNumber || '';
+      finalPropertyData = property || propertyData;
+    }
+    // Handle unauthenticated requests (requires phoneNumber and clientName)
+    else if (phoneNumber && clientName) {
+      finalClientPhone = phoneNumber;
+      finalClientName = clientName;
+      finalPropertyData = propertyData || property;
+
+      // Find or create user
+      const userSnapshot = await collections.users
+        .where('phoneNumber', '==', phoneNumber)
+        .where('role', '==', 'client')
+        .limit(1)
+        .get();
+
+      if (userSnapshot.empty) {
+        // Auto-register new client user
+        const newUserRef = await collections.users.add({
+          phoneNumber,
+          name: clientName,
+          role: 'client',
+          verified: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        userId = newUserRef.id;
+        console.log(`✅ Auto-registered new user: ${clientName} (${phoneNumber})`);
+      } else {
+        userId = userSnapshot.docs[0].id;
+      }
     } else {
-      userId = userSnapshot.docs[0].id;
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Please log in or provide phoneNumber and clientName',
+      });
     }
 
     // Check if property is already saved
@@ -80,14 +113,50 @@ router.post('/', validateBody(savePropertySchema), async (req: Request, res: Res
     const savedPropertyRef = await collections.savedProperties.add({
       userId,
       zpid,
-      propertyData,
-      clientName,
-      clientPhone: phoneNumber,
+      propertyData: finalPropertyData,
+      property: finalPropertyData, // Also store as 'property' for mobile app compatibility
+      clientName: finalClientName,
+      clientPhone: finalClientPhone,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
     console.log(`💾 Property saved: ${zpid} for user ${userId}`);
+
+    // Auto-complete step 6 (Search Properties) milestone when first property is saved
+    try {
+      if (finalClientPhone) {
+        const progressSnapshot = await collections.progress
+          .where('userId', '==', finalClientPhone)
+          .limit(1)
+          .get();
+
+        // Only mark complete if milestone exists but isn't already completed
+        if (!progressSnapshot.empty) {
+          const progressDoc = progressSnapshot.docs[0];
+          const progressData = progressDoc.data();
+          const step6Data = progressData?.milestones?.step6_searchProperties;
+
+          if (!step6Data || step6Data.status !== 'completed') {
+            await progressDoc.ref.update({
+              [`milestones.step6_searchProperties`]: {
+                status: 'completed',
+                completedAt: new Date(),
+                data: {
+                  firstPropertySaved: zpid,
+                  autoCompleted: true,
+                },
+              },
+              updatedAt: new Date(),
+            });
+            console.log(`✅ Auto-completed step 6 for user ${finalClientPhone}`);
+          }
+        }
+      }
+    } catch (progressError) {
+      // Don't fail the save if progress update fails
+      console.error('Failed to update progress:', progressError);
+    }
 
     return res.status(201).json({
       success: true,

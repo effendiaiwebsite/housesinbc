@@ -19,10 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency } from '@/lib/utils';
 import { propertiesAPI } from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
+import { X, Gift } from 'lucide-react';
 
 export default function Properties() {
   const { isModalOpen, source, metadata, trigger, close, onSuccess } = useLeadCapture();
   const { toast } = useToast();
+
+  // Quiz data and filters
+  const [quizData, setQuizData] = useState<any>(null);
+  const [affordablePrice, setAffordablePrice] = useState<number>(0);
+  const [interestedNeighborhoods, setInterestedNeighborhoods] = useState<string[]>([]);
+  const [savedPropertiesCount, setSavedPropertiesCount] = useState(0);
 
   // Search & Filter State
   const [location, setLocation] = useState('British Columbia');
@@ -94,9 +101,49 @@ export default function Properties() {
     }, 100);
   };
 
-  const handleSaveProperty = (property: any) => {
+  const calculatePTTSavings = (homePrice: number): number => {
+    if (homePrice <= 500000) {
+      return homePrice * 0.01;
+    }
+    if (homePrice <= 835000) {
+      const base = 500000 * 0.01;
+      const excess = homePrice - 500000;
+      const exemptionRate = 1 - (excess / 335000);
+      return base + (excess * 0.02 * exemptionRate);
+    }
+    return 0;
+  };
+
+  const handleSaveProperty = async (property: any) => {
     setSelectedProperty(property);
     setIsSavePropertyModalOpen(true);
+
+    // Track saved properties count and update milestone
+    const sessionId = sessionStorage.getItem('sessionId');
+    if (sessionId) {
+      try {
+        const newCount = savedPropertiesCount + 1;
+        setSavedPropertiesCount(newCount);
+
+        // Mark milestone complete when first property is saved
+        if (newCount === 1) {
+          await fetch(`/api/progress/${sessionId}/milestone`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              milestoneId: 'step6_searchProperties',
+              status: 'completed',
+              data: {
+                savedCount: newCount,
+                completedAt: new Date().toISOString(),
+              },
+            }),
+          });
+        }
+      } catch (error) {
+        console.error('Error updating milestone:', error);
+      }
+    }
   };
 
   const handleResetFilters = () => {
@@ -106,6 +153,55 @@ export default function Properties() {
     setMinPrice('');
     setMaxPrice('');
   };
+
+  // Load quiz data and apply auto-filters
+  useEffect(() => {
+    const loadQuizData = async () => {
+      const sessionId = sessionStorage.getItem('sessionId');
+      if (!sessionId) return;
+
+      try {
+        // Get quiz data
+        const quizResponse = await fetch(`/api/quiz/response/${sessionId}`);
+        const quizResult = await quizResponse.json();
+
+        if (quizResult.success && quizResult.data) {
+          const data = quizResult.data;
+          setQuizData(data);
+          setAffordablePrice(data.calculatedAffordability || 0);
+
+          // Auto-apply filters from quiz
+          if (data.calculatedAffordability) {
+            setMaxPrice(data.calculatedAffordability.toString());
+          }
+
+          // Set property type based on quiz
+          if (data.propertyType === 'condo') {
+            setHomeType('Condos');
+          } else if (data.propertyType === 'townhome') {
+            setHomeType('Townhomes');
+          } else if (data.propertyType === 'detached') {
+            setHomeType('Houses');
+          }
+        }
+
+        // Get interested neighborhoods from Step 5
+        const progressResponse = await fetch(`/api/progress/${sessionId}`);
+        const progressResult = await progressResponse.json();
+
+        if (progressResult.success && progressResult.data) {
+          const neighborhoodData = progressResult.data.milestones?.step5_neighborhoods?.data;
+          if (neighborhoodData?.interestedNeighborhoods) {
+            setInterestedNeighborhoods(neighborhoodData.interestedNeighborhoods);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading quiz data:', error);
+      }
+    };
+
+    loadQuizData();
+  }, []);
 
   // Load initial properties
   useEffect(() => {
@@ -232,6 +328,53 @@ export default function Properties() {
         </div>
       </section>
 
+      {/* Quiz-Based Filter Chips */}
+      {quizData && (
+        <section className="bg-blue-50 border-b border-blue-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-gray-700">Active Filters from Your Profile:</span>
+
+              {affordablePrice > 0 && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-full text-sm">
+                  <span>Max Price: ${affordablePrice.toLocaleString()}</span>
+                  <button
+                    onClick={() => setMaxPrice('')}
+                    className="ml-1 hover:bg-blue-700 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {homeType && quizData.propertyType && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-full text-sm">
+                  <span>{homeType}</span>
+                  <button
+                    onClick={() => setHomeType('')}
+                    className="ml-1 hover:bg-green-700 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {interestedNeighborhoods.length > 0 && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-orange-600 text-white rounded-full text-sm">
+                  <span>{interestedNeighborhoods.length} Neighborhoods Selected</span>
+                </div>
+              )}
+
+              {savedPropertiesCount > 0 && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-full text-sm">
+                  <span>{savedPropertiesCount} Properties Saved</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Properties Grid */}
       <section className="py-16 bg-gray-50 flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -310,7 +453,7 @@ export default function Properties() {
                           )}
                         </div>
                       </div>
-                      <div className="mb-4 flex gap-2">
+                      <div className="mb-4 flex gap-2 flex-wrap">
                         {property.homeType && (
                           <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                             {property.homeType}
@@ -319,6 +462,12 @@ export default function Properties() {
                         {property.listingStatus && (
                           <span className="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                             {property.listingStatus}
+                          </span>
+                        )}
+                        {property.price && calculatePTTSavings(property.price) > 0 && (
+                          <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs rounded-full flex items-center gap-1">
+                            <Gift className="h-3 w-3" />
+                            Save ${Math.round(calculatePTTSavings(property.price)).toLocaleString()} PTT
                           </span>
                         )}
                       </div>

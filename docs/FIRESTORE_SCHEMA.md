@@ -237,4 +237,136 @@ properties (1) ----< (many) appointments
 
 ---
 
-**Last Updated:** Phase 1 - Initial Setup
+### 10. **quiz_responses**
+Quiz submissions from users with calculated affordability and incentives.
+
+**Fields:**
+- `id` (string) - Auto-generated document ID
+- `userId` (string, optional) - Reference to authenticated user
+- `sessionId` (string) - Session identifier for anonymous users
+- `income` (number) - Annual household income
+- `savings` (number) - Down payment savings
+- `hasRRSP` (boolean) - Whether user has RRSP funds
+- `propertyType` (string) - 'condo', 'townhome', or 'detached'
+- `timeline` (string) - '1-3', '3-6', or '6-12' months
+- `calculatedAffordability` (number) - Maximum affordable home price
+- `calculatedIncentives` (object) - Breakdown of savings
+  - `ptt` (number) - Property Transfer Tax exemption
+  - `gst` (number) - GST/HST rebate
+  - `fhsa` (number) - FHSA tax benefit
+  - `total` (number) - Total first-year savings
+- `createdAt` (timestamp) - When quiz was submitted
+
+**Indexes:**
+- `userId` (for retrieving user's quiz)
+- `sessionId` (for anonymous user tracking)
+- `createdAt` (for sorting)
+
+---
+
+### 11. **user_progress**
+Tracks user progress through the 8-milestone home-buying journey.
+
+**Fields:**
+- `id` (string) - Auto-generated document ID
+- `userId` (string) - User or session identifier
+- `quizResponseId` (string) - Reference to quiz response
+- `milestones` (object) - Status of all 8 milestones
+  - `step1_creditScore` (object)
+    - `status` (string) - 'pending', 'in_progress', or 'completed'
+    - `data` (object) - { score?, method? }
+    - `completedAt` (timestamp, optional)
+  - `step2_fhsa` (object)
+    - `status` (string)
+    - `data` (object) - { opened?, provider?, proofUrl? }
+    - `completedAt` (timestamp, optional)
+  - `step3_preApproval` (object)
+    - `status` (string)
+    - `data` (object) - { ratePreferences?, documentsUploaded?, approvedAmount? }
+    - `completedAt` (timestamp, optional)
+  - `step4_incentives` (object)
+    - `status` (string) - Auto-completed from quiz
+    - `data` (object) - { totalSavings }
+    - `completedAt` (timestamp)
+  - `step5_neighborhoods` (object)
+    - `status` (string)
+    - `data` (object) - { viewedNeighborhoods? }
+    - `completedAt` (timestamp, optional)
+  - `step6_searchProperties` (object)
+    - `status` (string)
+    - `data` (object) - { savedCount? }
+    - `completedAt` (timestamp, optional)
+  - `step7_bookViewing` (object)
+    - `status` (string)
+    - `data` (object) - { appointmentIds? }
+    - `completedAt` (timestamp, optional)
+  - `step8_makeOffer` (object)
+    - `status` (string)
+    - `data` (object) - { offerIds? }
+    - `completedAt` (timestamp, optional)
+- `overallProgress` (number) - Percentage complete (0-100)
+- `updatedAt` (timestamp) - Last modified
+
+**Indexes:**
+- `userId` (for retrieving user's progress)
+- `overallProgress` (for admin analytics)
+
+---
+
+### 12. **mortgage_rates_cache**
+Cached mortgage rates from external APIs.
+
+**Fields:**
+- `id` (string) - Auto-generated document ID
+- `province` (string) - Province code (e.g., 'BC')
+- `rates` (array) - Array of rate objects
+  - `lender` (string) - Lender name
+  - `type` (string) - 'fixed' or 'variable'
+  - `term` (number) - Term in years
+  - `rate` (number) - Interest rate (as decimal)
+  - `province` (string) - Province code
+  - `lastUpdated` (timestamp, optional) - When rate was updated
+- `cachedAt` (timestamp) - When cache was created
+- `expiresAt` (timestamp) - When cache expires (24 hours)
+
+**Indexes:**
+- `province` (for filtering by location)
+- `expiresAt` (for cleanup of expired caches)
+
+**Cleanup:**
+- Expired caches should be deleted daily via cron job
+
+---
+
+### 13. **offers**
+Property purchase offers created by users.
+
+**Fields:**
+- `id` (string) - Auto-generated document ID
+- `userId` (string) - User or session identifier
+- `propertyZpid` (string, optional) - Zillow property ID
+- `propertyAddress` (string) - Property address
+- `propertyDetails` (object)
+  - `price` (number) - Listing price
+  - `beds` (number, optional) - Bedrooms
+  - `baths` (number, optional) - Bathrooms
+- `offerDetails` (object)
+  - `offerPrice` (number) - Offered price
+  - `subjects` (array of strings) - Conditions (e.g., ['financing', 'inspection'])
+  - `notes` (string, optional) - Additional notes
+- `status` (string) - 'draft', 'submitted', 'under_review', 'accepted', 'rejected', 'withdrawn'
+- `submittedAt` (timestamp, optional) - When submitted to admin
+- `reviewedAt` (timestamp, optional) - When reviewed by admin
+- `reviewedBy` (string, optional) - Admin user ID
+- `adminNotes` (string, optional) - Admin notes
+- `createdAt` (timestamp) - When created
+- `updatedAt` (timestamp) - Last modified
+
+**Indexes:**
+- `userId` (for retrieving user's offers)
+- `status` (for admin filtering)
+- `createdAt` (for sorting)
+
+---
+
+**Last Updated:** Phase 1 Complete - December 12, 2024

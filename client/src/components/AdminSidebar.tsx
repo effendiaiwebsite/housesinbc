@@ -16,6 +16,7 @@ import {
   Home,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,6 +38,16 @@ export default function AdminSidebar() {
       label: 'Dashboard',
       href: '/admin/dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      label: 'User Journeys',
+      href: '/admin/users',
+      icon: Users,
+    },
+    {
+      label: 'Offers',
+      href: '/admin/offers',
+      icon: FileText,
     },
     {
       label: 'Leads',

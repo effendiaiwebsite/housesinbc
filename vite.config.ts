@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
+  envDir: path.resolve(__dirname, "."), // Load .env from project root
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,

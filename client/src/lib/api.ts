@@ -35,27 +35,54 @@ async function apiRequest<T>(
 // ===== Authentication API =====
 
 export const authAPI = {
-  sendOTP: async (phoneNumber: string) => {
-    return apiRequest<{ success: boolean; message: string; expiresIn: number }>(
-      '/auth/send-otp',
-      {
-        method: 'POST',
-        body: JSON.stringify({ phoneNumber }),
-      }
-    );
-  },
-
-  verifyOTP: async (phoneNumber: string, code: string, loginType: 'admin' | 'client' = 'client') => {
-    console.log('🌐 API - verifyOTP request:');
-    console.log('  URL: /auth/verify-otp');
-    console.log('  Body:', { phoneNumber, code, loginType });
+  // Firebase Google Sign-In
+  googleSignIn: async (idToken: string, email: string, name: string | null, loginType: 'admin' | 'client' = 'client') => {
+    console.log('🌐 API - googleSignIn request:');
+    console.log('  URL: /auth/google-signin');
+    console.log('  loginType:', loginType);
     const response = await apiRequest<{
       success: boolean;
       message: string;
-      user: { id: string; phoneNumber: string; role: 'admin' | 'client' };
-    }>('/auth/verify-otp', {
+      user: { id: string; email: string; phoneNumber?: string; role: 'admin' | 'client'; name?: string };
+    }>('/auth/google-signin', {
       method: 'POST',
-      body: JSON.stringify({ phoneNumber, code, loginType }),
+      body: JSON.stringify({ idToken, email, name, loginType }),
+    });
+    console.log('  Response:', response);
+    return response;
+  },
+
+  // Firebase Email/Password Sign-In
+  emailSignIn: async (idToken: string, email: string, loginType: 'admin' | 'client' = 'client') => {
+    console.log('🌐 API - emailSignIn request:');
+    console.log('  URL: /auth/email-signin');
+    console.log('  email:', email);
+    console.log('  loginType:', loginType);
+    const response = await apiRequest<{
+      success: boolean;
+      message: string;
+      user: { id: string; email: string; phoneNumber?: string; role: 'admin' | 'client'; name?: string };
+    }>('/auth/email-signin', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, email, loginType }),
+    });
+    console.log('  Response:', response);
+    return response;
+  },
+
+  // Firebase Email/Password Sign-Up
+  emailSignUp: async (idToken: string, email: string, name: string | undefined, loginType: 'admin' | 'client' = 'client') => {
+    console.log('🌐 API - emailSignUp request:');
+    console.log('  URL: /auth/email-signup');
+    console.log('  email:', email);
+    console.log('  loginType:', loginType);
+    const response = await apiRequest<{
+      success: boolean;
+      message: string;
+      user: { id: string; email: string; phoneNumber?: string; role: 'admin' | 'client'; name?: string };
+    }>('/auth/email-signup', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, email, name, loginType }),
     });
     console.log('  Response:', response);
     return response;
@@ -64,7 +91,7 @@ export const authAPI = {
   checkStatus: async () => {
     return apiRequest<{
       authenticated: boolean;
-      user?: { id: string; phoneNumber: string; role: 'admin' | 'client' };
+      user?: { id: string; email?: string; phoneNumber?: string; role: 'admin' | 'client'; name?: string };
     }>('/auth/status');
   },
 
