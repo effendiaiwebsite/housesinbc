@@ -209,15 +209,15 @@ export default function AdminUsers() {
       <div className="flex">
         <AdminSidebar />
 
-        <main className="flex-1 px-4 md:px-8 py-8 md:ml-64 transition-all duration-300">
+        <main className="flex-1 px-3 sm:px-4 md:px-8 py-4 sm:py-6 md:py-8 md:ml-64 transition-all duration-300 pb-20 md:pb-8">
           {/* Header */}
           <div className="mb-10">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
               <div>
-                <h1 className="text-4xl font-display font-bold text-foreground mb-2">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
                   User Journeys
                 </h1>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-base sm:text-lg text-muted-foreground">
                   View quiz responses and track milestone progress
                 </p>
               </div>
@@ -322,8 +322,9 @@ export default function AdminUsers() {
           </div>
 
           {/* Users Table */}
-          <div className="premium-card p-6">
-            <div className="overflow-x-auto">
+          <div className="premium-card p-4 sm:p-6">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
@@ -415,6 +416,91 @@ export default function AdminUsers() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {filteredUsers.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No users found</p>
+                </div>
+              ) : (
+                filteredUsers.map((quiz) => {
+                  const progress = progressData[quiz.userId || quiz.sessionId];
+                  const progressPercent = progress?.overallProgress || 0;
+
+                  return (
+                    <div key={quiz.id} className="bg-white border border-border rounded-lg p-4 shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-semibold text-base text-foreground">{quiz.userId || 'Anonymous'}</div>
+                          <div className="text-xs text-muted-foreground mt-1 truncate">{quiz.sessionId}</div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setLocation(`/admin/users/${quiz.userId || quiz.sessionId}`)}
+                          className="text-primary hover:bg-primary-light"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Property</span>
+                          <span className="flex items-center space-x-2">
+                            <span className="text-lg">{getPropertyIcon(quiz.propertyType)}</span>
+                            <span className="capitalize text-sm">{quiz.propertyType}</span>
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground mb-1">Income</div>
+                            <div className="text-sm font-medium">{formatCurrency(quiz.income)}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground mb-1">Affordability</div>
+                            <div className="text-sm font-semibold">{formatCurrency(quiz.calculatedAffordability)}</div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground mb-1">Incentives</div>
+                          <div className="text-sm font-medium text-success">{formatCurrency(quiz.calculatedIncentives.total)}</div>
+                        </div>
+
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground mb-2">Progress</div>
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${
+                                  progressPercent >= 75 ? 'bg-success' :
+                                  progressPercent >= 50 ? 'bg-primary' :
+                                  progressPercent >= 25 ? 'bg-warning' :
+                                  'bg-muted-foreground'
+                                } transition-all duration-500`}
+                                style={{ width: `${progressPercent}%` }}
+                              ></div>
+                            </div>
+                            <span className={`text-sm font-semibold ${getProgressColor(progressPercent)} min-w-[45px]`}>
+                              {progressPercent.toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+                          Created {formatDate(quiz.createdAt)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </main>

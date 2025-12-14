@@ -207,16 +207,16 @@ export default function AdminLeads() {
       <div className="flex">
         <AdminSidebar />
 
-        <main className="flex-1 md:ml-64 transition-all duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 md:ml-64 transition-all duration-300 pb-20 md:pb-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>
-              <p className="text-gray-600 mt-1">Manage and track all your leads</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Lead Management</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and track all your leads</p>
             </div>
-            <Button onClick={() => setLocation('/admin/dashboard')}>
+            <Button onClick={() => setLocation('/admin/dashboard')} className="w-full sm:w-auto">
               <i className="fas fa-arrow-left mr-2"></i>
               Back to Dashboard
             </Button>
@@ -325,80 +325,136 @@ export default function AdminLeads() {
                 <p className="text-gray-600">No leads found</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Source
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Metadata
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredLeads.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{lead.name}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900">{lead.phoneNumber}</div>
-                          {lead.email && (
-                            <div className="text-sm text-gray-500">{lead.email}</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${getSourceBadgeColor(
-                              lead.source
-                            )}`}
-                          >
-                            {lead.source}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(lead.createdAt)}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-500">
-                          {lead.metadata && Object.keys(lead.metadata).length > 0 ? (
-                            <div className="max-w-xs truncate">
-                              {Object.entries(lead.metadata)
-                                .map(([key, value]) => `${key}: ${value}`)
-                                .join(', ')}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">None</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteLead(lead.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
-                        </td>
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Contact
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Source
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Metadata
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredLeads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{lead.name}</div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="text-sm text-gray-900">{lead.phoneNumber}</div>
+                            {lead.email && (
+                              <div className="text-sm text-gray-500">{lead.email}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${getSourceBadgeColor(
+                                lead.source
+                              )}`}
+                            >
+                              {lead.source}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDate(lead.createdAt)}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-500">
+                            {lead.metadata && Object.keys(lead.metadata).length > 0 ? (
+                              <div className="max-w-xs truncate">
+                                {Object.entries(lead.metadata)
+                                  .map(([key, value]) => `${key}: ${value}`)
+                                  .join(', ')}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">None</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteLead(lead.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                  {filteredLeads.map((lead) => (
+                    <div key={lead.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-semibold text-base text-gray-900">{lead.name}</div>
+                          <div className="text-sm text-gray-600 mt-1">{lead.phoneNumber}</div>
+                          {lead.email && (
+                            <div className="text-sm text-gray-600">{lead.email}</div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteLead(lead.id)}
+                          className="text-red-600 hover:text-red-900 -mt-1 -mr-2"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${getSourceBadgeColor(
+                            lead.source
+                          )}`}
+                        >
+                          {lead.source}
+                        </span>
+                      </div>
+
+                      <div className="text-sm text-gray-500 mb-2">
+                        {formatDate(lead.createdAt)}
+                      </div>
+
+                      {lead.metadata && Object.keys(lead.metadata).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="text-xs font-medium text-gray-500 mb-2">Metadata</div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {Object.entries(lead.metadata).map(([key, value]) => (
+                              <div key={key} className="flex justify-between">
+                                <span className="font-medium">{key}:</span>
+                                <span className="text-gray-700">{String(value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

@@ -200,16 +200,16 @@ export default function AdminAppointments() {
       <div className="flex">
         <AdminSidebar />
 
-        <main className="flex-1 md:ml-64 transition-all duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 md:ml-64 transition-all duration-300 pb-20 md:pb-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Appointment Management</h1>
-              <p className="text-gray-600 mt-1">Track and manage property viewings</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Appointment Management</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">Track and manage property viewings</p>
             </div>
-            <Button onClick={() => setLocation('/admin/dashboard')}>
+            <Button onClick={() => setLocation('/admin/dashboard')} className="w-full sm:w-auto">
               <i className="fas fa-arrow-left mr-2"></i>
               Back to Dashboard
             </Button>
@@ -328,52 +328,130 @@ export default function AdminAppointments() {
                 <p className="text-gray-600">No appointments found</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Client
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Property
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date & Time
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Notes
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredAppointments.map((apt) => (
-                      <tr key={apt.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4">
-                          <div className="font-medium text-gray-900">{apt.clientName}</div>
-                          <div className="text-sm text-gray-500">{apt.clientPhone}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-gray-900 max-w-xs truncate">
-                            {apt.propertyAddress}
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Client
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Property
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date & Time
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Notes
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredAppointments.map((apt) => (
+                        <tr key={apt.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-4">
+                            <div className="font-medium text-gray-900">{apt.clientName}</div>
+                            <div className="text-sm text-gray-500">{apt.clientPhone}</div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="text-sm text-gray-900 max-w-xs truncate">
+                              {apt.propertyAddress}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{formatDate(apt.preferredDate)}</div>
+                            <div className="text-sm text-gray-500">{apt.preferredTime}</div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <Select
+                              value={apt.status}
+                              onValueChange={(value: any) => handleUpdateStatus(apt.id, value)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="confirmed">Confirmed</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-500">
+                            {apt.notes ? (
+                              <div className="max-w-xs truncate">{apt.notes}</div>
+                            ) : (
+                              <span className="text-gray-400">None</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAppointment(apt.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                  {filteredAppointments.map((apt) => (
+                    <div key={apt.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="font-semibold text-base text-gray-900">{apt.clientName}</div>
+                          <div className="text-sm text-gray-600 mt-1">{apt.clientPhone}</div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteAppointment(apt.id)}
+                          className="text-red-600 hover:text-red-900 -mt-1 -mr-2"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </Button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-xs font-medium text-gray-500 mb-1">Property</div>
+                          <div className="text-sm text-gray-900">{apt.propertyAddress}</div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 mb-1">Date</div>
+                            <div className="text-sm text-gray-900">{formatDate(apt.preferredDate)}</div>
                           </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDate(apt.preferredDate)}</div>
-                          <div className="text-sm text-gray-500">{apt.preferredTime}</div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 mb-1">Time</div>
+                            <div className="text-sm text-gray-900">{apt.preferredTime}</div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-xs font-medium text-gray-500 mb-1">Status</div>
                           <Select
                             value={apt.status}
                             onValueChange={(value: any) => handleUpdateStatus(apt.id, value)}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-full">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -383,29 +461,19 @@ export default function AdminAppointments() {
                               <SelectItem value="cancelled">Cancelled</SelectItem>
                             </SelectContent>
                           </Select>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-500">
-                          {apt.notes ? (
-                            <div className="max-w-xs truncate">{apt.notes}</div>
-                          ) : (
-                            <span className="text-gray-400">None</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteAppointment(apt.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+
+                        {apt.notes && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 mb-1">Notes</div>
+                            <div className="text-sm text-gray-600">{apt.notes}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

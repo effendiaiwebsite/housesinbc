@@ -171,12 +171,12 @@ export default function Dashboard() {
       <div className="flex">
         <AdminSidebar />
 
-        <main className="flex-1 px-4 md:px-8 py-8 md:ml-64 transition-all duration-300">
+        <main className="flex-1 px-3 sm:px-4 md:px-8 py-4 sm:py-6 md:py-8 md:ml-64 transition-all duration-300 pb-20 md:pb-8">
           {/* Header - Premium */}
         <div className="mb-10">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-display font-bold text-foreground mb-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
                 Admin Dashboard
               </h1>
               <p className="text-lg text-muted-foreground">
@@ -204,7 +204,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Cards - Premium */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-10">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -238,7 +238,7 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Section - Premium */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-10">
           <div className="premium-card p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
