@@ -204,7 +204,7 @@ export default function Navigation() {
                 </>
               ) : (
                 <>
-                  <Link href="/client/login">
+                  <Link href="/client/login" className="block">
                     <Button
                       variant="outline"
                       className="w-full justify-start border-primary/20"
@@ -214,7 +214,7 @@ export default function Navigation() {
                       Client Login
                     </Button>
                   </Link>
-                  <Link href="/landing">
+                  <Link href="/landing" className="block">
                     <Button
                       className="w-full gradient-primary text-white shadow-premium"
                       onClick={() => setMobileMenuOpen(false)}

@@ -352,20 +352,6 @@ export default function ClientDashboard() {
           ))}
         </div>
 
-        {/* Help Section */}
-        <Card className="p-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center">
-          <h3 className="text-xl font-semibold mb-2">Need Help?</h3>
-          <p className="mb-4">Rida is here to guide you through every step</p>
-          <div className="flex justify-center gap-4">
-            <Button variant="secondary">
-              💬 Chat with AI
-            </Button>
-            <Button variant="secondary">
-              📅 Book Free Consultation
-            </Button>
-          </div>
-        </Card>
-
         {/* Confetti Animation */}
         {showConfetti && (
           <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
