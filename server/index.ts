@@ -49,7 +49,8 @@ app.use(cors({
   origin: true, // Allow all origins in development
   credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Cache-Control'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
 }));
 
 // Body parsing

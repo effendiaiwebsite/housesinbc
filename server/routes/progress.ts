@@ -25,9 +25,35 @@ router.get('/:identifier', async (req, res) => {
       .get();
 
     if (querySnapshot.empty) {
-      return res.status(404).json({
-        success: false,
-        error: 'Progress not found',
+      // Auto-create progress for new users with default values
+      console.log(`Creating new progress record for user: ${identifier}`);
+
+      const defaultProgress = {
+        userId: identifier,
+        milestones: {
+          'financial_assessment': { status: 'available', data: {} },
+          'mortgage_pre_approval': { status: 'locked', data: {} },
+          'house_hunting': { status: 'locked', data: {} },
+          'make_offer': { status: 'locked', data: {} },
+          'home_inspection': { status: 'locked', data: {} },
+          'final_approval': { status: 'locked', data: {} },
+          'closing_prep': { status: 'locked', data: {} },
+          'move_in': { status: 'locked', data: {} },
+        },
+        overallProgress: 0,
+        completedCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const docRef = await db.collection('user_progress').add(defaultProgress);
+
+      return res.json({
+        success: true,
+        data: {
+          id: docRef.id,
+          ...defaultProgress,
+        },
       });
     }
 
