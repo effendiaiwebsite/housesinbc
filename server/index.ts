@@ -94,6 +94,17 @@ app.use(
   })
 );
 
+// Debug session parsing
+app.use((req, res, next) => {
+  console.log('🔍 Session Debug:', {
+    sessionID: req.sessionID,
+    session: req.session,
+    cookieHeader: req.headers.cookie,
+    hasSession: !!req.session,
+  });
+  next();
+});
+
 // ===== API Routes =====
 
 app.use('/api/auth', authRoutes);
