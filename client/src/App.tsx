@@ -40,6 +40,7 @@ import OfferBuilder from '@/pages/milestones/OfferBuilder';
 import Dashboard from '@/pages/Dashboard';
 import AdminUsers from '@/pages/AdminUsers';
 import AdminUserDetail from '@/pages/AdminUserDetail';
+import AdminRegisteredUsers from '@/pages/AdminRegisteredUsers';
 import AdminOffers from '@/pages/AdminOffers';
 import AdminLeads from '@/pages/AdminLeads';
 import AdminAppointments from '@/pages/AdminAppointments';
@@ -84,6 +85,12 @@ function App() {
         <Route path="/admin/users/:userId">
           <ProtectedRoute requireRole="admin">
             <AdminUserDetail />
+          </ProtectedRoute>
+        </Route>
+
+        <Route path="/admin/registered-users">
+          <ProtectedRoute requireRole="admin">
+            <AdminRegisteredUsers />
           </ProtectedRoute>
         </Route>
 

@@ -273,4 +273,100 @@ router.get('/users/:userId/journey', requireAuth, requireAdmin, async (req, res)
   }
 });
 
+/**
+ * GET /api/admin/users
+ * Get all registered users
+ */
+router.get('/users', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { role, limit = 100, offset = 0 } = req.query;
+
+    let query = collections.users.orderBy('createdAt', 'desc');
+
+    // Filter by role if specified
+    if (role && (role === 'admin' || role === 'client')) {
+      query = collections.users
+        .where('role', '==', role)
+        .orderBy('createdAt', 'desc') as any;
+    }
+
+    const snapshot = await query.get();
+
+    const users = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: data.email || '',
+        phoneNumber: data.phoneNumber || '',
+        name: data.name || '',
+        role: data.role || 'client',
+        verified: data.verified || false,
+        loginType: data.loginType || 'unknown',
+        lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: users,
+      total: users.length,
+    });
+  } catch (error: any) {
+    console.error('Get registered users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch registered users',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Delete a registered user (admin only)
+ */
+router.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists
+    const userDoc = await collections.users.doc(id).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Prevent deleting admin users (safety check)
+    if (userData?.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot delete admin users',
+      });
+    }
+
+    // Delete the user
+    await collections.users.doc(id).delete();
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully',
+      deletedUserId: id,
+    });
+  } catch (error: any) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete user',
+      details: error.message
+    });
+  }
+});
+
 export default router;

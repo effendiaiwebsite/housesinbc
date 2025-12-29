@@ -45,6 +45,11 @@ export default function AdminSidebar() {
       icon: Users,
     },
     {
+      label: 'Registered Users',
+      href: '/admin/registered-users',
+      icon: Users,
+    },
+    {
       label: 'Offers',
       href: '/admin/offers',
       icon: FileText,

@@ -364,6 +364,21 @@ export const savedPropertiesAPI = {
   },
 };
 
+// ===== Registered Users API (Admin) =====
+
+export const registeredUsersAPI = {
+  getAll: async (role?: 'admin' | 'client') => {
+    const queryParams = role ? `?role=${role}` : '';
+    return apiRequest<{ success: boolean; data: any[]; total: number }>(`/admin/users${queryParams}`);
+  },
+
+  delete: async (id: string) => {
+    return apiRequest<{ success: boolean; message: string; deletedUserId: string }>(`/admin/users/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default {
   auth: authAPI,
   leads: leadsAPI,
@@ -375,4 +390,5 @@ export default {
   properties: propertiesAPI,
   neighborhoods: neighborhoodsAPI,
   savedProperties: savedPropertiesAPI,
+  registeredUsers: registeredUsersAPI,
 };
