@@ -341,6 +341,8 @@ router.post('/google-signin', async (req: Request, res: Response) => {
         email,
         role,
         name: name || decodedToken.name,
+        verified: true,
+        phoneNumber: null,
       },
     });
   } catch (error) {
