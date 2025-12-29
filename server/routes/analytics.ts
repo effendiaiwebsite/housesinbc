@@ -56,6 +56,10 @@ router.get('/stats', requireAdmin, async (req, res) => {
     const newsletterSnapshot = await collections.newsletters.get();
     const totalSubscribers = newsletterSnapshot.size;
 
+    // Get chat sessions count
+    const chatSessionsSnapshot = await collections.chatSessions.get();
+    const chatSessions = chatSessionsSnapshot.size;
+
     // Calculate conversion rate (appointments / leads)
     const conversionRate = totalLeads > 0
       ? ((totalAppointments / totalLeads) * 100).toFixed(1)
@@ -69,6 +73,7 @@ router.get('/stats', requireAdmin, async (req, res) => {
           totalAppointments,
           totalSubscribers,
           conversionRate: `${conversionRate}%`,
+          chatSessions,
         },
         leadsBySource,
         appointmentsByStatus,
