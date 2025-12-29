@@ -54,6 +54,7 @@ export const collections = {
   chatbotSettings: db.collection('chatbot_settings'),
   progress: db.collection('progress'),
   quizResponses: db.collection('quiz_responses'),
+  offers: db.collection('offers'),
 };
 
 export default db;

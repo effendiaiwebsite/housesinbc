@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { db } from '../db';
+import { db, collections } from '../db';
 import { offerSchema, updateOfferSchema } from '../../shared/schema';
 
 const router = Router();
@@ -77,6 +77,60 @@ router.post('/', async (req, res) => {
     res.status(400).json({
       success: false,
       error: error.message || 'Failed to create offer',
+    });
+  }
+});
+
+/**
+ * GET /api/offers
+ * Get all offers (admin view) OR offers for a specific user
+ * If query params include page/limit, return all offers (admin)
+ * Otherwise, use the identifier from the path
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { status, page, limit } = req.query;
+
+    // If page/limit query params are present, treat as admin request for all offers
+    if (page !== undefined || limit !== undefined) {
+      let query = collections.offers.orderBy('createdAt', 'desc');
+
+      if (status) {
+        query = collections.offers
+          .where('status', '==', status)
+          .orderBy('createdAt', 'desc') as any;
+      }
+
+      const offersSnapshot = await query.get();
+
+      const offers = offersSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+          submittedAt: data.submittedAt?.toDate(),
+          reviewedAt: data.reviewedAt?.toDate(),
+        };
+      });
+
+      return res.json({
+        success: true,
+        data: offers,
+      });
+    }
+
+    // If no query params, return error - identifier required
+    return res.status(400).json({
+      success: false,
+      error: 'User identifier required in path or use query params for admin view',
+    });
+  } catch (error: any) {
+    console.error('Get offers error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve offers',
     });
   }
 });

@@ -315,6 +315,33 @@ router.put('/response/:id', async (req, res) => {
 });
 
 /**
+ * GET /api/quiz/status/:userId
+ * Check if user has completed the quiz
+ */
+router.get('/status/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const querySnapshot = await db
+      .collection('quiz_responses')
+      .where('userId', '==', userId)
+      .limit(1)
+      .get();
+
+    res.json({
+      completed: !querySnapshot.empty,
+      count: querySnapshot.size,
+    });
+  } catch (error: any) {
+    console.error('Check quiz status error:', error);
+    res.json({
+      completed: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * GET /api/admin/quiz/all
  * Get all quiz responses (admin only)
  * TODO: Add admin authentication middleware

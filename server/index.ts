@@ -28,6 +28,7 @@ import progressRoutes from './routes/progress';
 import ratesRoutes from './routes/rates';
 import offersRoutes from './routes/offers';
 import uploadRoutes from './routes/upload';
+import adminRoutes from './routes/admin';
 
 // Services
 import { knowledgeUpdateService } from './services/knowledgeUpdateService';
@@ -98,6 +99,7 @@ app.use(
 app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/admin', adminRoutes); // Admin routes must come before other routes to avoid conflicts
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/properties', propertiesRoutes);
 app.use('/api/neighborhoods', neighborhoodsRoutes);
