@@ -26,7 +26,7 @@ export default function ClientLogin() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already authenticated as client
+  // Redirect if already authenticated
   useEffect(() => {
     console.log('🔄 CLIENT LOGIN - useEffect redirect check:');
     console.log('  isAuthenticated:', isAuthenticated);
@@ -34,8 +34,9 @@ export default function ClientLogin() {
     if (isAuthenticated && user?.role === 'client') {
       console.log('✅ CLIENT LOGIN - Already authenticated as client, redirecting to /client/dashboard');
       setLocation('/client/dashboard');
-    } else if (isAuthenticated && user?.role !== 'client') {
-      console.log('⚠️  CLIENT LOGIN - Authenticated but role is:', user?.role);
+    } else if (isAuthenticated && user?.role === 'admin') {
+      console.log('✅ CLIENT LOGIN - Authenticated as admin, redirecting to /admin/dashboard');
+      setLocation('/admin/dashboard');
     }
   }, [isAuthenticated, user, setLocation]);
 
@@ -49,7 +50,7 @@ export default function ClientLogin() {
         title: 'Welcome!',
         description: 'You are now logged in',
       });
-      setLocation('/client/dashboard');
+      // Redirect based on role (handled by useEffect)
     } catch (error: any) {
       console.error('❌ CLIENT LOGIN - Google sign-in error:', error);
       toast({
@@ -74,7 +75,7 @@ export default function ClientLogin() {
         title: 'Welcome Back!',
         description: 'You are now logged in',
       });
-      setLocation('/client/dashboard');
+      // Redirect based on role (handled by useEffect)
     } catch (error: any) {
       console.error('❌ CLIENT LOGIN - Email sign-in error:', error);
       toast({
@@ -118,7 +119,7 @@ export default function ClientLogin() {
         title: 'Account Created!',
         description: 'Welcome to Houses BC',
       });
-      setLocation('/client/dashboard');
+      // Redirect based on role (handled by useEffect)
     } catch (error: any) {
       console.error('❌ CLIENT LOGIN - Sign-up error:', error);
       toast({
