@@ -13,7 +13,7 @@ import { validateBody } from '../middleware';
 const router = Router();
 
 const ADMIN_PHONE_NUMBER = process.env.ADMIN_PHONE_NUMBER || '+14034783995';
-const ADMIN_EMAIL = 'satindersandhu138@gmail.com';
+const ADMIN_EMAIL = ['satindersandhu138@gmail.com', 'rida.kazmi14@gmail.com'];
 const OTP_EXPIRY_MINUTES = 10;
 
 /**
@@ -284,7 +284,7 @@ router.post('/google-signin', async (req: Request, res: Response) => {
     console.log('  ✅ Firebase token verified');
 
     // Determine role based on email and loginType
-    const role = (loginType === 'admin' || email === ADMIN_EMAIL) ? 'admin' : 'client';
+    const role = (loginType === 'admin' || ADMIN_EMAIL.includes(email)) ? 'admin' : 'client';
     console.log('  - Role assigned:', role);
 
     // Find or create user
@@ -378,7 +378,7 @@ router.post('/email-signin', async (req: Request, res: Response) => {
     console.log('  ✅ Firebase token verified');
 
     // Determine role
-    const role = (loginType === 'admin' || email === ADMIN_EMAIL) ? 'admin' : 'client';
+    const role = (loginType === 'admin' || ADMIN_EMAIL.includes(email)) ? 'admin' : 'client';
     console.log('  - Role assigned:', role);
 
     // Find user
@@ -460,7 +460,7 @@ router.post('/email-signup', async (req: Request, res: Response) => {
     console.log('  ✅ Firebase token verified');
 
     // Determine role
-    const role = (loginType === 'admin' || email === ADMIN_EMAIL) ? 'admin' : 'client';
+    const role = (loginType === 'admin' || ADMIN_EMAIL.includes(email)) ? 'admin' : 'client';
     console.log('  - Role assigned:', role);
 
     // Check if user already exists

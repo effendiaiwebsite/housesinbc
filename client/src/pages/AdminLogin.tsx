@@ -2,7 +2,7 @@
  * Admin Login Page
  *
  * Email/Password authentication for admin access.
- * Admin email: satindersandhu138@gmail.com
+ * Admin emails: satindersandhu138@gmail.com, rida.kazmi14@gmail.com
  */
 
 import { useState, useEffect } from 'react';
