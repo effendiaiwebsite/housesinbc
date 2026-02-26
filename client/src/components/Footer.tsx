@@ -77,6 +77,11 @@ export default function Footer() {
                   <a className="hover:text-white transition-colors">Client Portal</a>
                 </Link>
               </li>
+              <li>
+                <Link href="/privacy">
+                  <a className="hover:text-white transition-colors">Privacy Policy</a>
+                </Link>
+              </li>
             </ul>
           </div>
 
