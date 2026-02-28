@@ -23,6 +23,7 @@ import Blog from '@/pages/Blog';
 import Properties from '@/pages/Properties';
 import Neighborhoods from '@/pages/Neighborhoods';
 import Privacy from '@/pages/Privacy';
+import DeleteData from '@/pages/DeleteData';
 import Welcome from '@/pages/Welcome';
 import Quiz from '@/pages/Quiz';
 import PieChartResults from '@/pages/PieChartResults';
@@ -66,6 +67,7 @@ function App() {
         <Route path="/properties" component={Properties} />
         <Route path="/neighborhoods" component={Neighborhoods} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/delete-my-data" component={DeleteData} />
 
         {/* Auth Routes */}
         <Route path="/admin/login" component={AdminLogin} />

@@ -29,6 +29,7 @@ import ratesRoutes from './routes/rates';
 import offersRoutes from './routes/offers';
 import uploadRoutes from './routes/upload';
 import adminRoutes from './routes/admin';
+import dataDeletionRoutes from './routes/dataDeletion';
 
 // Services
 import { knowledgeUpdateService } from './services/knowledgeUpdateService';
@@ -121,6 +122,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/rates', ratesRoutes);
 app.use('/api/offers', offersRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/data-deletion-request', dataDeletionRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

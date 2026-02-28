@@ -55,6 +55,7 @@ export const collections = {
   progress: db.collection('progress'),
   quizResponses: db.collection('quiz_responses'),
   offers: db.collection('offers'),
+  deletionRequests: db.collection('deletion_requests'),
 };
 
 export default db;

@@ -82,6 +82,11 @@ export default function Footer() {
                   <a className="hover:text-white transition-colors">Privacy Policy</a>
                 </Link>
               </li>
+              <li>
+                <Link href="/delete-my-data">
+                  <a className="hover:text-white transition-colors">Delete My Data</a>
+                </Link>
+              </li>
             </ul>
           </div>
 
