@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import zillowService from '../services/zillow';
+import repliersService from '../services/repliers';
 
 const router = Router();
 
@@ -37,7 +37,7 @@ router.get('/search', async (req: Request, res: Response) => {
       page: Number(page),
     };
 
-    const results = await zillowService.searchProperties(searchParams);
+    const results = await repliersService.searchProperties(searchParams);
 
     return res.json({
       success: true,
@@ -68,7 +68,7 @@ router.get('/:zpid', async (req: Request, res: Response) => {
       });
     }
 
-    const propertyDetails = await zillowService.getPropertyDetails(zpid);
+    const propertyDetails = await repliersService.getPropertyDetails(zpid);
 
     return res.json({
       success: true,

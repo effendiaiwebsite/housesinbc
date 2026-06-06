@@ -381,38 +381,51 @@ router.post('/email-signin', async (req: Request, res: Response) => {
     const role = (loginType === 'admin' || ADMIN_EMAIL.includes(email)) ? 'admin' : 'client';
     console.log('  - Role assigned:', role);
 
-    // Find user
+    // Find or create user
     const userSnapshot = await collections.users
       .where('email', '==', email)
       .where('role', '==', role)
       .limit(1)
       .get();
 
+    let userId: string;
+    let userName: string | undefined;
+
     if (userSnapshot.empty) {
-      console.log('  ❌ User not found');
-      return res.status(404).json({
-        error: 'User not found',
-        message: 'No account found with this email. Please sign up first.',
+      // Auto-create user on first email sign-in (mirrors Google sign-in behaviour)
+      console.log('  - Creating NEW user via email sign-in');
+      const newUserRef = await collections.users.add({
+        email,
+        name: decodedToken.name || email.split('@')[0],
+        role,
+        verified: true,
+        firebaseUid: decodedToken.uid,
+        lastLogin: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      userId = newUserRef.id;
+      userName = decodedToken.name || email.split('@')[0];
+      console.log('  - New user created, ID:', userId);
+    } else {
+      // Update existing user
+      console.log('  - Found EXISTING user');
+      const userDoc = userSnapshot.docs[0];
+      userId = userDoc.id;
+      userName = userDoc.data().name;
+      await userDoc.ref.update({
+        verified: true,
+        lastLogin: new Date(),
+        updatedAt: new Date(),
+        firebaseUid: decodedToken.uid,
       });
     }
-
-    // Update existing user
-    const userDoc = userSnapshot.docs[0];
-    const userId = userDoc.id;
-    const userData = userDoc.data();
-
-    await userDoc.ref.update({
-      verified: true,
-      lastLogin: new Date(),
-      updatedAt: new Date(),
-      firebaseUid: decodedToken.uid,
-    });
 
     // Create session
     req.session.userId = userId;
     req.session.email = email;
     req.session.role = role;
-    req.session.userName = userData.name;
+    req.session.userName = userName;
     req.session.isAuthenticated = true;
 
     console.log('  ✅ Session created');
@@ -424,7 +437,7 @@ router.post('/email-signin', async (req: Request, res: Response) => {
         id: userId,
         email,
         role,
-        name: userData.name,
+        name: userName,
       },
     });
   } catch (error) {

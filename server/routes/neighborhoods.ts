@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import zillowService from '../services/zillow';
+import repliersService from '../services/repliers';
 
 const router = Router();
 
@@ -15,7 +15,7 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const neighborhoods = await zillowService.getBCNeighborhoods();
+    const neighborhoods = await repliersService.getBCNeighborhoods();
 
     return res.json({
       success: true,
@@ -46,7 +46,7 @@ router.get('/:location', async (req: Request, res: Response) => {
       });
     }
 
-    const neighborhoodInfo = await zillowService.getNeighborhoodInfo(location);
+    const neighborhoodInfo = await repliersService.getNeighborhoodInfo(location);
 
     return res.json({
       success: true,

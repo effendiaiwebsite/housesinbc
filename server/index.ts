@@ -64,21 +64,6 @@ if (isDevelopment) {
   app.use(requestLogger);
 }
 
-// Session debugging middleware (production only - to diagnose issues)
-if (!isDevelopment) {
-  app.use((req, res, next) => {
-    console.log('📋 Request Debug:', {
-      method: req.method,
-      path: req.path,
-      sessionID: req.sessionID,
-      session: req.session,
-      cookies: req.headers.cookie,
-      isAuthenticated: req.session?.isAuthenticated,
-    });
-    next();
-  });
-}
-
 // Session configuration
 app.use(
   session({
@@ -94,17 +79,6 @@ app.use(
     proxy: true, // Trust proxy (required for Render.com)
   })
 );
-
-// Debug session parsing
-app.use((req, res, next) => {
-  console.log('🔍 Session Debug:', {
-    sessionID: req.sessionID,
-    session: req.session,
-    cookieHeader: req.headers.cookie,
-    hasSession: !!req.session,
-  });
-  next();
-});
 
 // ===== API Routes =====
 

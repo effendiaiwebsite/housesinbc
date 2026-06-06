@@ -23,6 +23,8 @@ services:
         sync: false
       - key: ADMIN_PHONE
         value: +14034783995
+      - key: REPLIERS_API_KEY
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: PORT

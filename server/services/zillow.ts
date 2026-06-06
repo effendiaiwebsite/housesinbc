@@ -1,31 +1,16 @@
 /**
- * Zillow API Service
+ * Zillow Live Data Scraper API Service
  *
- * Integrates with Zillow API via RapidAPI to fetch property listings and neighborhood data.
+ * Uses zillow-com-live-data-scraper-api.p.rapidapi.com
  */
 
 import axios from 'axios';
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
-const RAPIDAPI_HOST = 'zillow-com1.p.rapidapi.com';
+const RAPIDAPI_HOST = 'zillow-com-live-data-scraper-api.p.rapidapi.com';
 
-interface ZillowProperty {
-  zpid: string;
-  streetAddress: string;
-  city: string;
-  state: string;
-  zipcode: string;
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  livingArea: number;
-  homeType: string;
-  imgSrc: string;
-  latitude: number;
-  longitude: number;
-  listingStatus?: string;
-  daysOnZillow?: number;
-}
+// In-memory cache so property details can be looked up after a search
+const propertyCache = new Map<string, any>();
 
 interface SearchParams {
   location: string;
@@ -38,139 +23,147 @@ interface SearchParams {
   page?: number;
 }
 
-// Mock data for when API is unavailable
-const MOCK_PROPERTIES = [
-  {
-    zpid: '1',
-    streetAddress: '123 King George Blvd',
-    city: 'Surrey',
-    state: 'BC',
-    zipcode: 'V3T 2W1',
-    price: 649900,
-    bedrooms: 3,
-    bathrooms: 2,
-    livingArea: 1200,
-    homeType: 'Condo',
-    imgSrc: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800',
-    latitude: 49.1913,
-    longitude: -122.8490,
-    listingStatus: 'For Sale',
-    daysOnZillow: 5,
-  },
-  {
-    zpid: '2',
-    streetAddress: '456 104 Avenue',
-    city: 'Surrey',
-    state: 'BC',
-    zipcode: 'V3T 1X4',
-    price: 749000,
-    bedrooms: 3,
-    bathrooms: 2.5,
-    livingArea: 1450,
-    homeType: 'Townhouse',
-    imgSrc: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
-    latitude: 49.1950,
-    longitude: -122.8450,
-    listingStatus: 'For Sale',
-    daysOnZillow: 12,
-  },
-  {
-    zpid: '3',
-    streetAddress: '789 Fraser Hwy',
-    city: 'Surrey',
-    state: 'BC',
-    zipcode: 'V3T 2X3',
-    price: 899000,
-    bedrooms: 4,
-    bathrooms: 3,
-    livingArea: 1850,
-    homeType: 'Single Family',
-    imgSrc: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-    latitude: 49.1880,
-    longitude: -122.8520,
-    listingStatus: 'For Sale',
-    daysOnZillow: 3,
-  },
-];
+// "Vancouver, BC" -> "vancouver-bc"  |  "British Columbia" -> "british-columbia"
+function toLocationSlug(location: string): string {
+  return location
+    .toLowerCase()
+    .replace(/,\s*/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+// "4685 Valley Dr #304, Vancouver, BC V6J 5M2" -> { street, city, state, zipcode }
+function parseAddress(fullAddress: string) {
+  const parts = fullAddress.split(', ');
+  if (parts.length >= 3) {
+    const street = parts[0];
+    const city = parts[1];
+    const lastPart = parts[parts.length - 1]; // e.g. "BC V6J 5M2"
+    const spaceIdx = lastPart.indexOf(' ');
+    const state = spaceIdx > 0 ? lastPart.substring(0, spaceIdx) : lastPart;
+    const zipcode = spaceIdx > 0 ? lastPart.substring(spaceIdx + 1) : '';
+    return { street, city, state, zipcode };
+  }
+  return { street: fullAddress, city: '', state: 'BC', zipcode: '' };
+}
+
+// Map a raw API result to the shape the mobile app and web expect
+function mapProperty(p: any) {
+  const { street, city, state, zipcode } = parseAddress(p.address || '');
+  const mapped = {
+    zpid: String(p.zpid),
+    address: street,
+    city,
+    state,
+    zipcode,
+    price: p.price || 0,
+    beds: p.beds || 0,
+    baths: p.baths || 0,
+    sqft: p.sqft || 0,
+    propertyType: p.property_type || 'Unknown',
+    listingStatus: (p.status || 'FOR_SALE').replace(/_/g, ' '),
+    imgSrc: p.photo_url || '',
+    latitude: p.latitude || 0,
+    longitude: p.longitude || 0,
+    listingUrl: p.url || '',
+    brokerage: p.brokerage || '',
+  };
+  // Cache every result so getPropertyDetails can look it up
+  propertyCache.set(mapped.zpid, mapped);
+  return mapped;
+}
 
 /**
- * Search for properties on Zillow
+ * Search for properties by location
  */
 export async function searchProperties(params: SearchParams): Promise<any> {
-  try {
-    // Return mock data if no API key configured
-    if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'your_rapidapi_key_here') {
-      console.log('⚠️  Using mock property data (no RapidAPI key configured)');
-      return {
-        props: MOCK_PROPERTIES,
-        totalResultCount: MOCK_PROPERTIES.length,
-      };
-    }
+  if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'your_rapidapi_key_here') {
+    throw new Error('RapidAPI key is not configured. Please set RAPIDAPI_KEY in your environment.');
+  }
 
-    const options = {
-      method: 'GET',
-      url: `https://${RAPIDAPI_HOST}/propertyExtendedSearch`,
-      params: {
-        location: params.location,
-        status_type: params.status_type || 'ForSale',
-        home_type: params.home_type,
-        minPrice: params.minPrice,
-        maxPrice: params.maxPrice,
-        bedsMin: params.beds,
-        bathsMin: params.baths,
-        page: params.page || 1,
-      },
+  const locationSlug = toLocationSlug(params.location);
+  const listType = params.status_type === 'ForRent' ? 'for-rent' : 'for-sale';
+
+  const queryParams: Record<string, any> = {
+    location: locationSlug,
+    listType,
+    page: params.page || 1,
+  };
+
+  if (params.minPrice) queryParams.minPrice = params.minPrice;
+  if (params.maxPrice) queryParams.maxPrice = params.maxPrice;
+  if (params.beds)     queryParams.beds = params.beds;
+  if (params.baths)    queryParams.baths = params.baths;
+
+  try {
+    const response = await axios.get(`https://${RAPIDAPI_HOST}/bylocation`, {
+      params: queryParams,
       headers: {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
         'X-RapidAPI-Host': RAPIDAPI_HOST,
       },
-    };
+      timeout: 15000,
+    });
 
-    const response = await axios.request(options);
-    return response.data;
-  } catch (error: any) {
-    console.error('Zillow API Error:', error.response?.data || error.message);
-    console.log('⚠️  Falling back to mock property data');
+    const results = (response.data.results || []).map(mapProperty);
+    const pagination = response.data.pagination || {};
 
-    // Return mock data as fallback
     return {
-      props: MOCK_PROPERTIES,
-      totalResultCount: MOCK_PROPERTIES.length,
+      props: results,
+      totalResultCount: pagination.total_results || results.length,
+      totalPages: pagination.total_pages || 1,
+      currentPage: pagination.current_page || 1,
+      hasNext: pagination.has_next || false,
     };
+  } catch (error: any) {
+    const status = error.response?.status;
+    const detail = error.response?.data?.message || error.message;
+    console.error(`Zillow API Error (HTTP ${status}):`, detail);
+
+    if (status === 401 || status === 403) {
+      throw new Error('Property search is temporarily unavailable. Please try again later.');
+    }
+    if (status === 429) {
+      throw new Error('Too many requests. Please wait a moment and try again.');
+    }
+    throw new Error(`Unable to fetch properties: ${detail}`);
   }
 }
 
 /**
- * Get property details by Zillow Property ID (ZPID)
+ * Get property details by ZPID.
+ * The live scraper API has no dedicated detail endpoint, so we return
+ * from the in-memory cache populated during searchProperties.
  */
 export async function getPropertyDetails(zpid: string): Promise<any> {
-  try {
-    // Return mock data if no API key configured
-    if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'your_rapidapi_key_here') {
-      console.log('⚠️  Using mock property details (no RapidAPI key configured)');
-      const mockProperty = MOCK_PROPERTIES.find(p => p.zpid === zpid);
-      return mockProperty || MOCK_PROPERTIES[0];
-    }
+  const cached = propertyCache.get(zpid);
+  if (cached) return cached;
 
-    const options = {
-      method: 'GET',
-      url: `https://${RAPIDAPI_HOST}/property`,
-      params: { zpid },
+  // Not in cache — do a broad BC search to find it
+  if (!RAPIDAPI_KEY || RAPIDAPI_KEY === 'your_rapidapi_key_here') {
+    throw new Error('RapidAPI key is not configured.');
+  }
+
+  try {
+    const response = await axios.get(`https://${RAPIDAPI_HOST}/bylocation`, {
+      params: { location: 'british-columbia', listType: 'for-sale', page: 1 },
       headers: {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
         'X-RapidAPI-Host': RAPIDAPI_HOST,
       },
-    };
+      timeout: 15000,
+    });
 
-    const response = await axios.request(options);
-    return response.data;
+    (response.data.results || []).forEach((p: any) => mapProperty(p));
+    const found = propertyCache.get(zpid);
+    if (found) return found;
+
+    throw new Error('Property not found. Please go back and search again.');
   } catch (error: any) {
-    console.error('Zillow API Error:', error.response?.data || error.message);
-    console.log('⚠️  Falling back to mock property details');
-
-    // Return mock data as fallback
-    const mockProperty = MOCK_PROPERTIES.find(p => p.zpid === zpid);
-    return mockProperty || MOCK_PROPERTIES[0];
+    if (error.message.includes('Property not found')) throw error;
+    const status = error.response?.status;
+    const detail = error.response?.data?.message || error.message;
+    throw new Error(`Unable to fetch property details: ${detail}`);
   }
 }
 
@@ -178,44 +171,31 @@ export async function getPropertyDetails(zpid: string): Promise<any> {
  * Get neighborhood/area information
  */
 export async function getNeighborhoodInfo(location: string): Promise<any> {
-  try {
-    // For neighborhoods, we'll search for properties in the area and aggregate data
-    const properties = await searchProperties({ location, status_type: 'ForSale' });
+  const results = await searchProperties({ location, status_type: 'ForSale' });
+  const props = results.props || [];
 
-    // Extract neighborhood statistics
-    const stats = {
-      location,
-      totalListings: properties.totalResultCount || properties.totalPages || 0,
-      averagePrice: 0,
-      priceRange: { min: 0, max: 0 },
-      propertyTypes: {} as Record<string, number>,
-      sample: properties.props?.slice(0, 6) || properties.results?.slice(0, 6) || [],
-    };
+  const prices = props.map((p: any) => p.price).filter((p: number) => p > 0);
+  const avgPrice = prices.length > 0
+    ? Math.round(prices.reduce((a: number, b: number) => a + b, 0) / prices.length)
+    : 0;
 
-    const resultsList = properties.props || properties.results || [];
+  const propertyTypes: Record<string, number> = {};
+  props.forEach((p: any) => {
+    const type = p.propertyType || 'Unknown';
+    propertyTypes[type] = (propertyTypes[type] || 0) + 1;
+  });
 
-    if (resultsList && resultsList.length > 0) {
-      const prices = resultsList.map((p: any) => p.price || p.unformattedPrice).filter((p: number) => p > 0);
-
-      stats.averagePrice = prices.length > 0
-        ? Math.round(prices.reduce((a: number, b: number) => a + b, 0) / prices.length)
-        : 0;
-
-      stats.priceRange.min = prices.length > 0 ? Math.min(...prices) : 0;
-      stats.priceRange.max = prices.length > 0 ? Math.max(...prices) : 0;
-
-      // Count property types
-      resultsList.forEach((p: any) => {
-        const type = p.propertyType || p.homeType || 'Unknown';
-        stats.propertyTypes[type] = (stats.propertyTypes[type] || 0) + 1;
-      });
-    }
-
-    return stats;
-  } catch (error: any) {
-    console.error('Zillow API Error:', error.response?.data || error.message);
-    throw new Error('Failed to fetch neighborhood information from Zillow');
-  }
+  return {
+    location,
+    totalListings: results.totalResultCount || props.length,
+    averagePrice: avgPrice,
+    priceRange: {
+      min: prices.length > 0 ? Math.min(...prices) : 0,
+      max: prices.length > 0 ? Math.max(...prices) : 0,
+    },
+    propertyTypes,
+    sample: props.slice(0, 6),
+  };
 }
 
 /**
@@ -233,23 +213,20 @@ export async function getBCNeighborhoods(): Promise<any[]> {
     'New Westminster, BC',
   ];
 
-  const neighborhoodsData = await Promise.allSettled(
+  const results = await Promise.allSettled(
     bcNeighborhoods.map(async (location) => {
       try {
         const data = await getNeighborhoodInfo(location);
         return { ...data, name: location };
-      } catch (error) {
-        console.error(`Error fetching data for ${location}:`, error);
+      } catch {
         return null;
       }
     })
   );
 
-  return neighborhoodsData
-    .filter((result): result is PromiseFulfilledResult<any> =>
-      result.status === 'fulfilled' && result.value !== null
-    )
-    .map(result => result.value);
+  return results
+    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+    .map(r => r.value);
 }
 
 export default {
